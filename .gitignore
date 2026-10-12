@@ -1,0 +1,25 @@
+
+# Gradle generated files
+.gradle/
+build/
+**/build/
+
+# IntelliJ IDEA workspace files
+.idea/
+*.iml
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Local application configuration containing credentials
+src/main/resources/application.yml
+src/main/resources/application.yaml
+
+# Local logs
+*.log
