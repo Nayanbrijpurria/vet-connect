@@ -98,4 +98,29 @@ object UserRepository {
                 }
             }
         }
+
+
+    suspend fun findRoleById(userId: Long): String? =
+        withContext(Dispatchers.IO) {
+            val sql = """
+                SELECT role
+                FROM users
+                WHERE id = ?
+            """.trimIndent()
+
+            DatabaseFactory.withConnection { connection ->
+                connection.prepareStatement(sql).use { statement ->
+                    statement.setLong(1, userId)
+
+                    statement.executeQuery().use { result ->
+                        if (result.next()) {
+                            result.getString("role")
+                        } else {
+                            null
+                        }
+                    }
+                }
+            }
+        }
+
 }

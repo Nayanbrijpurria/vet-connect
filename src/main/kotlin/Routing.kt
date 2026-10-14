@@ -14,9 +14,9 @@ import io.ktor.server.routing.post
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.http.content.static
 import io.ktor.server.routing.put
 import io.ktor.server.routing.delete
-
 
 fun Route.configureRouting() {
 
@@ -49,6 +49,7 @@ fun Route.configureRouting() {
             return@post
         }
 
+
         if (!email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) ||
             email.length > 255
         ) {
@@ -66,6 +67,7 @@ fun Route.configureRouting() {
             )
             return@post
         }
+
 
         if (request.phone != null && request.phone.length > 20) {
             call.respond(
@@ -115,6 +117,174 @@ fun Route.configureRouting() {
             )
         }
     }
+
+
+    // ---------------- VETERINARIAN REGISTRATION ----------------
+    post("/api/vets/register") {
+        val request = try {
+            call.receive<VetRegistrationRequest>()
+        } catch (exception: Exception) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Invalid veterinarian registration request"
+                )
+            )
+            return@post
+        }
+
+        val fullName = request.fullName.trim()
+        val email = request.email.trim().lowercase()
+        val password = request.password
+        val phone = request.phone?.trim()?.takeIf { it.isNotEmpty() }
+        val qualification = request.qualification.trim()
+        val registrationNumber = request.registrationNumber.trim()
+
+        if (fullName.isBlank() || fullName.length > 150) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Name must be between 1 and 150 characters"
+                )
+            )
+            return@post
+        }
+
+        if (
+            !email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) ||
+            email.length > 255
+        ) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(message = "Invalid email address")
+            )
+            return@post
+        }
+
+        if (password.length < 8 || password.length > 72) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Password must be between 8 and 72 characters"
+                )
+            )
+            return@post
+        }
+
+        if (phone != null && phone.length > 20) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(message = "Phone number is too long")
+            )
+            return@post
+        }
+
+        if (qualification.isBlank() || qualification.length > 150) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Qualification must be between 1 and 150 characters"
+                )
+            )
+            return@post
+        }
+
+        if (
+            registrationNumber.isBlank() ||
+            registrationNumber.length > 100
+        ) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Registration number must be between 1 and 100 characters"
+                )
+            )
+            return@post
+        }
+
+        if (request.experienceYears !in 0..70) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Experience must be between 0 and 70 years"
+                )
+            )
+            return@post
+        }
+
+        if (
+            !request.consultationFee.isFinite() ||
+            request.consultationFee < 0.0 ||
+            request.consultationFee > 1000000.0
+        ) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                VetRegistrationResponse(
+                    message = "Please enter a valid consultation fee"
+                )
+            )
+            return@post
+        }
+
+        try {
+            val passwordHash = PasswordService.hashPassword(password)
+
+            val user = VetRepository.registerVet(
+                fullName = fullName,
+                email = email,
+                passwordHash = passwordHash,
+                phone = phone,
+                qualification = qualification,
+                registrationNumber = registrationNumber,
+                experienceYears = request.experienceYears,
+                consultationFee = request.consultationFee
+            )
+
+            call.respond(
+                HttpStatusCode.Created,
+                VetRegistrationResponse(
+                    message = "Veterinarian application submitted. Verification is pending.",
+                    userId = user.id,
+                    email = user.email,
+                    role = user.role,
+                    verificationStatus = "PENDING"
+                )
+            )
+        } catch (exception: java.sql.SQLException) {
+            if (exception.sqlState == "23505") {
+                call.respond(
+                    HttpStatusCode.Conflict,
+                    VetRegistrationResponse(
+                        message = "This email or registration number is already registered"
+                    )
+                )
+            } else {
+                application.log.error(
+                    "Veterinarian registration failed",
+                    exception
+                )
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    VetRegistrationResponse(
+                        message = "Veterinarian registration failed"
+                    )
+                )
+            }
+        } catch (exception: Exception) {
+            application.log.error(
+                "Veterinarian registration failed",
+                exception
+            )
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                VetRegistrationResponse(
+                    message = "Veterinarian registration failed"
+                )
+            )
+        }
+    }
+
+
 //----------------------LOGIN API---------------------
     post("/api/auth/login") {
 
@@ -181,6 +351,257 @@ fun Route.configureRouting() {
 
 
     authenticate("auth-jwt") {
+
+
+        get("/api/vets/verification-status") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+            val role = principal?.payload
+                ?.getClaim("role")
+                ?.asString()
+
+            if (userId == null || role.isNullOrBlank()) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    AuthResponse(message = "Invalid authentication token")
+                )
+                return@get
+            }
+
+            if (role != "VET") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(
+                        message = "Only veterinarian accounts can access this endpoint"
+                    )
+                )
+                return@get
+            }
+
+            try {
+                // Check the user's current role in PostgreSQL.
+                val currentRole = UserRepository.findRoleById(userId)
+
+                if (currentRole != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        AuthResponse(
+                            message = "This account is not an active veterinarian account"
+                        )
+                    )
+                    return@get
+                }
+
+                // Pending and rejected veterinarians can still check their status.
+                val status = VetRepository.getVerificationStatus(userId)
+
+                if (status == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        VetRegistrationResponse(
+                            message = "Veterinarian profile not found"
+                        )
+                    )
+                } else {
+                    call.respond(HttpStatusCode.OK, status)
+                }
+            } catch (exception: Exception) {
+                application.log.error(
+                    "Failed to retrieve veterinarian verification status",
+                    exception
+                )
+
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    VetRegistrationResponse(
+                        message = "Unable to retrieve verification status"
+                    )
+                )
+            }
+        }
+
+
+        // List pending veterinarian applications.
+        get("/api/admin/vets/pending") {
+            val principal = call.principal<JWTPrincipal>()
+            val adminId = principal?.payload?.subject?.toLongOrNull()
+            val role = principal?.payload?.getClaim("role")?.asString()
+
+            if (adminId == null || role.isNullOrBlank()) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    AuthResponse(message = "Invalid authentication token")
+                )
+            } else if (role != "ADMIN") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "Administrator access required")
+                )
+            } else {
+                try {
+                    // Confirm the account's current database role.
+                    val currentRole = UserRepository.findRoleById(adminId)
+
+                    if (currentRole != "ADMIN") {
+                        call.respond(
+                            HttpStatusCode.Forbidden,
+                            AuthResponse(
+                                message = "Administrator access required"
+                            )
+                        )
+                        return@get
+                    }
+
+                    val applications = AdminRepository.getPendingVets()
+
+                    call.respond(
+                        HttpStatusCode.OK,
+                        PendingVetsListResponse(applications)
+                    )
+                } catch (exception: Exception) {
+                    application.log.error(
+                        "Failed to retrieve pending veterinarian applications",
+                        exception
+                    )
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        AuthResponse(message = "Unable to retrieve applications")
+                    )
+                }
+            }
+        }
+
+        // Approve a pending veterinarian application.
+        put("/api/admin/vets/{userId}/approve") {
+            val principal = call.principal<JWTPrincipal>()
+            val adminId = principal?.payload?.subject?.toLongOrNull()
+            val role = principal?.payload?.getClaim("role")?.asString()
+            val userId = call.parameters["userId"]?.toLongOrNull()
+
+            if (adminId == null || role.isNullOrBlank()) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    AuthResponse(message = "Invalid authentication token")
+                )
+            } else if (role != "ADMIN") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "Administrator access required")
+                )
+            } else if (userId == null || userId <= 0) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    AuthResponse(message = "A valid veterinarian user ID is required")
+                )
+            } else {
+                try {
+                    val result = AdminRepository.reviewVet(
+                        userId = userId,
+                        adminId = adminId,
+                        approved = true
+                    )
+
+                    if (result == null) {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            AuthResponse(
+                                message = "Application not found or already reviewed"
+                            )
+                        )
+                    } else {
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+                } catch (exception: SecurityException) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        AuthResponse(message = "Administrator access required")
+                    )
+                } catch (exception: Exception) {
+                    application.log.error(
+                        "Failed to approve veterinarian application",
+                        exception
+                    )
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        AuthResponse(message = "Unable to approve application")
+                    )
+                }
+            }
+        }
+
+        // Reject a pending veterinarian application.
+        put("/api/admin/vets/{userId}/reject") {
+            val principal = call.principal<JWTPrincipal>()
+            val adminId = principal?.payload?.subject?.toLongOrNull()
+            val role = principal?.payload?.getClaim("role")?.asString()
+            val userId = call.parameters["userId"]?.toLongOrNull()
+
+            if (adminId == null || role.isNullOrBlank()) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    AuthResponse(message = "Invalid authentication token")
+                )
+            } else if (role != "ADMIN") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "Administrator access required")
+                )
+            } else if (userId == null || userId <= 0) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    AuthResponse(message = "A valid veterinarian user ID is required")
+                )
+            } else {
+                try {
+                    val request = call.receive<VetReviewRequest>()
+                    val reason = request.rejectionReason?.trim()
+
+                    if (reason.isNullOrBlank() || reason.length > 500) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            AuthResponse(
+                                message = "Rejection reason is required and must not exceed 500 characters"
+                            )
+                        )
+                    } else {
+                        val result = AdminRepository.reviewVet(
+                            userId = userId,
+                            adminId = adminId,
+                            approved = false,
+                            rejectionReason = reason
+                        )
+
+                        if (result == null) {
+                            call.respond(
+                                HttpStatusCode.Conflict,
+                                AuthResponse(
+                                    message = "Application not found or already reviewed"
+                                )
+                            )
+                        } else {
+                            call.respond(HttpStatusCode.OK, result)
+                        }
+                    }
+                } catch (exception: SecurityException) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        AuthResponse(message = "Administrator access required")
+                    )
+                } catch (exception: Exception) {
+                    application.log.error(
+                        "Failed to reject veterinarian application",
+                        exception
+                    )
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        AuthResponse(message = "Unable to reject application")
+                    )
+                }
+            }
+        }
+
+
+        //------------------------------------------------------
         get("/api/auth/me") {
             val principal = call.principal<JWTPrincipal>()
 
