@@ -353,6 +353,238 @@ fun Route.configureRouting() {
     authenticate("auth-jwt") {
 
 
+        post("/api/vets/time-off") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication")
+                )
+                return@post
+            }
+
+            try {
+                if (UserRepository.findRoleById(userId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can manage time off")
+                    )
+                    return@post
+                }
+
+                if (!VetRepository.isVetApproved(userId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved first")
+                    )
+                    return@post
+                }
+
+                val request = call.receive<CreateTimeOffRequest>()
+                val result = TimeOffRepository.createTimeOff(userId, request)
+
+                call.respond(HttpStatusCode.Created, result)
+
+            } catch (e: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to (e.message ?: "Invalid time-off request"))
+                )
+            } catch (e: Exception) {
+                call.application.log.error("Failed to create veterinarian time off", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Could not create time off")
+                )
+            }
+        }
+
+        get("/api/vets/time-off") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication")
+                )
+                return@get
+            }
+
+            try {
+                if (UserRepository.findRoleById(userId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can view time off")
+                    )
+                    return@get
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    TimeOffRepository.getTimeOff(userId)
+                )
+
+            } catch (e: Exception) {
+                call.application.log.error("Failed to retrieve veterinarian time off", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Could not retrieve time off")
+                )
+            }
+        }
+
+        delete("/api/vets/time-off/{id}") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication")
+                )
+                return@delete
+            }
+
+            val timeOffId = call.parameters["id"]?.toLongOrNull()
+            if (timeOffId == null || timeOffId <= 0) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "A valid time-off ID is required")
+                )
+                return@delete
+            }
+
+            try {
+                if (UserRepository.findRoleById(userId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can manage time off")
+                    )
+                    return@delete
+                }
+
+                val deleted = TimeOffRepository.deleteTimeOff(userId, timeOffId)
+
+                if (deleted) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        mapOf("message" to "Time off deleted")
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Time-off record not found")
+                    )
+                }
+
+            } catch (e: Exception) {
+                call.application.log.error("Failed to delete veterinarian time off", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Could not delete time off")
+                )
+            }
+        }
+
+
+        post("/api/vets/availability") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication"))
+                return@post
+            }
+
+            try {
+                val databaseRole = UserRepository.findRoleById(userId)
+                if (databaseRole != "VET") {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can manage availability"))
+                    return@post
+                }
+
+                if (!VetRepository.isVetApproved(userId)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Your veterinarian profile must be approved first"))
+                    return@post
+                }
+
+                val request = call.receive<CreateAvailabilityRequest>()
+                val result = AvailabilityRepository.createAvailability(userId, request)
+                call.respond(HttpStatusCode.Created, result)
+
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid availability")))
+            } catch (e: Exception) {
+                call.application.log.error("Failed to create veterinarian availability", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Could not create availability"))
+            }
+        }
+
+        get("/api/vets/availability") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication"))
+                return@get
+            }
+
+            try {
+                val databaseRole = UserRepository.findRoleById(userId)
+                if (databaseRole != "VET") {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can view their availability"))
+                    return@get
+                }
+
+                val result = AvailabilityRepository.getAvailability(userId)
+                call.respond(HttpStatusCode.OK, result)
+
+            } catch (e: Exception) {
+                call.application.log.error("Failed to retrieve veterinarian availability", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Could not retrieve availability"))
+            }
+        }
+
+        delete("/api/vets/availability/{id}") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication"))
+                return@delete
+            }
+
+            val availabilityId = call.parameters["id"]?.toLongOrNull()
+            if (availabilityId == null || availabilityId <= 0) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid availability ID is required"))
+                return@delete
+            }
+
+            try {
+                val databaseRole = UserRepository.findRoleById(userId)
+                if (databaseRole != "VET") {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can manage availability"))
+                    return@delete
+                }
+
+                val deactivated = AvailabilityRepository.deactivateAvailability(userId, availabilityId)
+
+                if (deactivated) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Availability deactivated"))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Availability not found or already inactive"))
+                }
+
+            } catch (e: Exception) {
+                call.application.log.error("Failed to deactivate veterinarian availability", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Could not deactivate availability"))
+            }
+        }
+
+
         get("/api/vets/verification-status") {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal?.payload?.subject?.toLongOrNull()
@@ -419,6 +651,8 @@ fun Route.configureRouting() {
                 )
             }
         }
+
+
 
 
         // List pending veterinarian applications.
@@ -955,6 +1189,84 @@ fun Route.configureRouting() {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     AuthResponse(message = "Unable to delete pet")
+                )
+            }
+        }
+
+        // Create an appointment with instant confirmation.
+        post("/api/appointments") {
+            val principal = call.principal<JWTPrincipal>()
+            val customerId = principal?.payload?.subject?.toLongOrNull()
+
+            if (customerId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@post
+            }
+
+            try {
+                // Check the current database role, not just the JWT claim.
+                val currentRole = UserRepository.findRoleById(customerId)
+
+                if (currentRole != "CUSTOMER") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only customer accounts can book appointments")
+                    )
+                    return@post
+                }
+
+                val request = try {
+                    call.receive<CreateAppointmentRequest>()
+                } catch (exception: Exception) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid appointment request body")
+                    )
+                    return@post
+                }
+
+                if (request.petId <= 0 || request.vetUserId <= 0) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Valid petId and vetUserId are required")
+                    )
+                    return@post
+                }
+
+                val appointment = AppointmentRepository.createAppointment(
+                    customerId = customerId,
+                    request = request
+                )
+
+                call.respond(HttpStatusCode.Created, appointment)
+
+            } catch (exception: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to (exception.message ?: "Invalid appointment request"))
+                )
+            } catch (exception: java.sql.SQLException) {
+                if (exception.sqlState == "23P01") {
+                    // PostgreSQL exclusion constraint: conflicting appointment.
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "This veterinarian's time slot has already been booked")
+                    )
+                } else {
+                    application.log.error("Appointment booking failed", exception)
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Unable to book appointment")
+                    )
+                }
+            } catch (exception: Exception) {
+                application.log.error("Appointment booking failed", exception)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to book appointment")
                 )
             }
         }
