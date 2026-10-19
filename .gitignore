@@ -23,3 +23,5 @@ src/main/resources/application.yaml
 
 # Local logs
 *.log
+
+/uploads/

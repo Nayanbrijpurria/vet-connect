@@ -328,11 +328,206 @@ FOR UPDATE OF vp
         }
     }
 
+    // Get all appointments belonging to one customer.
+    suspend fun getCustomerAppointments(
+        customerId: Long
+    ): List<AppointmentResponse> = withContext(Dispatchers.IO) {
+
+        DatabaseFactory.withConnection { connection ->
+            connection.prepareStatement(
+                """
+                SELECT
+                    a.id,
+                    a.customer_id,
+                    a.pet_id,
+                    vp.user_id AS vet_user_id,
+                    a.scheduled_start,
+                    a.scheduled_end,
+                    a.status,
+                    a.consultation_fee,
+                    a.meeting_url
+                FROM appointments a
+                JOIN vet_profiles vp ON vp.id = a.vet_profile_id
+                WHERE a.customer_id = ?
+                ORDER BY a.scheduled_start DESC
+                """.trimIndent()
+            ).use { statement ->
+
+                statement.setLong(1, customerId)
+
+                statement.executeQuery().use { rs ->
+                    val appointments = mutableListOf<AppointmentResponse>()
+
+                    while (rs.next()) {
+                        appointments.add(
+                            AppointmentResponse(
+                                id = rs.getLong("id"),
+                                customerId = rs.getLong("customer_id"),
+                                petId = rs.getLong("pet_id"),
+                                vetUserId = rs.getLong("vet_user_id"),
+                                scheduledStart = rs.getObject(
+                                    "scheduled_start",
+                                    OffsetDateTime::class.java
+                                ).toString(),
+                                scheduledEnd = rs.getObject(
+                                    "scheduled_end",
+                                    OffsetDateTime::class.java
+                                ).toString(),
+                                status = rs.getString("status"),
+                                consultationFee = rs.getBigDecimal(
+                                    "consultation_fee"
+                                ).toDouble(),
+                                meetingUrl = rs.getString("meeting_url")
+                            )
+                        )
+                    }
+
+                    appointments
+                }
+            }
+        }
+    }
+
+    // Cancel an appointment belonging to the customer.
+    suspend fun cancelCustomerAppointment(
+        customerId: Long,
+        appointmentId: Long
+    ): Boolean = withContext(Dispatchers.IO) {
+
+        DatabaseFactory.withConnection { connection ->
+            connection.prepareStatement(
+                """
+                UPDATE appointments
+                SET status = 'CANCELLED'
+                WHERE id = ?
+                  AND customer_id = ?
+                  AND status IN ('PENDING', 'CONFIRMED')
+                  AND scheduled_start > CURRENT_TIMESTAMP
+                """.trimIndent()
+            ).use { statement ->
+
+                statement.setLong(1, appointmentId)
+                statement.setLong(2, customerId)
+
+                statement.executeUpdate() == 1
+            }
+        }
+    }
+
+
+    // Get appointments assigned to the logged-in veterinarian.
+    suspend fun getVetAppointments(
+        vetUserId: Long
+    ): List<AppointmentResponse> = withContext(Dispatchers.IO) {
+
+        DatabaseFactory.withConnection { connection ->
+            connection.prepareStatement(
+                """
+                SELECT
+                    a.id,
+                    a.customer_id,
+                    a.pet_id,
+                    vp.user_id AS vet_user_id,
+                    a.scheduled_start,
+                    a.scheduled_end,
+                    a.status,
+                    a.consultation_fee,
+                    a.meeting_url
+                FROM appointments a
+                JOIN vet_profiles vp ON vp.id = a.vet_profile_id
+                WHERE vp.user_id = ?
+                ORDER BY a.scheduled_start DESC
+                """.trimIndent()
+            ).use { statement ->
+
+                statement.setLong(1, vetUserId)
+
+                statement.executeQuery().use { rs ->
+                    val appointments = mutableListOf<AppointmentResponse>()
+
+                    while (rs.next()) {
+                        appointments.add(
+                            AppointmentResponse(
+                                id = rs.getLong("id"),
+                                customerId = rs.getLong("customer_id"),
+                                petId = rs.getLong("pet_id"),
+                                vetUserId = rs.getLong("vet_user_id"),
+                                scheduledStart = rs.getObject(
+                                    "scheduled_start",
+                                    OffsetDateTime::class.java
+                                ).toString(),
+                                scheduledEnd = rs.getObject(
+                                    "scheduled_end",
+                                    OffsetDateTime::class.java
+                                ).toString(),
+                                status = rs.getString("status"),
+                                consultationFee = rs.getBigDecimal(
+                                    "consultation_fee"
+                                ).toDouble(),
+                                meetingUrl = rs.getString("meeting_url")
+                            )
+                        )
+                    }
+
+                    appointments
+                }
+            }
+        }
+    }
+
+    // Allow a veterinarian to complete a finished appointment
+    // or cancel a future confirmed appointment assigned to them.
+    suspend fun updateVetAppointmentStatus(
+        vetUserId: Long,
+        appointmentId: Long,
+        newStatus: String
+    ): Boolean = withContext(Dispatchers.IO) {
+
+        require(newStatus == "COMPLETED" || newStatus == "CANCELLED") {
+            "Status must be COMPLETED or CANCELLED"
+        }
+
+        DatabaseFactory.withConnection { connection ->
+            connection.prepareStatement(
+                """
+                UPDATE appointments
+                SET status = ?
+                WHERE id = ?
+                  AND status = 'CONFIRMED'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM vet_profiles vp
+                      WHERE vp.id = appointments.vet_profile_id
+                        AND vp.user_id = ?
+                  )
+                  AND (
+                      (? = 'COMPLETED'
+                       AND scheduled_end <= CURRENT_TIMESTAMP)
+                      OR
+                      (? = 'CANCELLED'
+                       AND scheduled_start > CURRENT_TIMESTAMP)
+                  )
+                """.trimIndent()
+            ).use { statement ->
+
+                statement.setString(1, newStatus)
+                statement.setLong(2, appointmentId)
+                statement.setLong(3, vetUserId)
+                statement.setString(4, newStatus)
+                statement.setString(5, newStatus)
+
+                statement.executeUpdate() == 1
+            }
+        }
+    }
+
+
     private data class VetBookingInfo(
         val profileId: Long,
         val userId: Long,
         val consultationFee: java.math.BigDecimal,
         val timezone: String
+
     )
 
     private data class AvailabilitySlot(
@@ -341,194 +536,3 @@ FOR UPDATE OF vp
         val durationMinutes: Int
     )
 }
-
-
-
-
-
-
-//
-//package com.vetplatform
-//
-//import kotlinx.coroutines.Dispatchers
-//import kotlinx.coroutines.withContext
-//import java.sql.Connection
-//import java.time.OffsetDateTime
-//
-//
-//object AppointmentRepository {
-//
-//    suspend fun createAppointment(
-//        customerId: Long,
-//        request: CreateAppointmentRequest
-//    ): AppointmentResponse = withContext(Dispatchers.IO) {
-//
-//        val start = try {
-//            OffsetDateTime.parse(request.scheduledStart)
-//        } catch (exception: Exception) {
-//            throw IllegalArgumentException(
-//                "scheduledStart must be an ISO-8601 timestamp with timezone"
-//            )
-//        }
-//
-//        val end = try {
-//            OffsetDateTime.parse(request.scheduledEnd)
-//        } catch (exception: Exception) {
-//            throw IllegalArgumentException(
-//                "scheduledEnd must be an ISO-8601 timestamp with timezone"
-//            )
-//        }
-//
-//        require(end.isAfter(start)) {
-//            "Appointment end must be after its start"
-//        }
-//
-//        require(start.isAfter(OffsetDateTime.now())) {
-//            "Appointment must be scheduled in the future"
-//        }
-//
-//        DatabaseFactory.withConnection { connection ->
-//            val originalAutoCommit = connection.autoCommit
-//
-//            try {
-//                connection.autoCommit = false
-//
-//                // Confirm that the customer owns the selected pet.
-//                val petSql = """
-//                    SELECT id
-//                    FROM pets
-//                    WHERE id = ? AND owner_id = ?
-//                    FOR UPDATE
-//                """.trimIndent()
-//
-//                val ownsPet = connection.prepareStatement(petSql).use { statement ->
-//                    statement.setLong(1, request.petId)
-//                    statement.setLong(2, customerId)
-//
-//                    statement.executeQuery().use { result ->
-//                        result.next()
-//                    }
-//                }
-//
-//                if (!ownsPet) {
-//                    throw IllegalArgumentException(
-//                        "Pet not found or does not belong to this customer"
-//                    )
-//                }
-//
-//                // Resolve the veterinarian's user ID to the profile ID.
-//                // Only approved veterinarians can receive bookings.
-//                val vetSql = """
-//                    SELECT vp.id, vp.consultation_fee
-//                    FROM vet_profiles vp
-//                    JOIN users u ON u.id = vp.user_id
-//                    WHERE vp.user_id = ?
-//                      AND u.role = 'VET'
-//                      AND vp.verification_status = 'APPROVED'
-//                    FOR UPDATE OF vp
-//                """.trimIndent()
-//
-//                val vet = connection.prepareStatement(vetSql).use { statement ->
-//                    statement.setLong(1, request.vetUserId)
-//
-//                    statement.executeQuery().use { result ->
-//                        if (result.next()) {
-//                            Pair(
-//                                result.getLong("id"),
-//                                result.getBigDecimal("consultation_fee")
-//                            )
-//                        } else {
-//                            null
-//                        }
-//                    }
-//                } ?: throw IllegalArgumentException(
-//                    "Veterinarian not found or not approved"
-//                )
-//
-//                // Prevent overlapping appointments for the same veterinarian.
-//                val overlapSql = """
-//                    SELECT EXISTS (
-//                        SELECT 1
-//                        FROM appointments
-//                        WHERE vet_profile_id = ?
-//                          AND status IN ('PENDING', 'CONFIRMED')
-//                          AND scheduled_start < ?
-//                          AND scheduled_end > ?
-//                    )
-//                """.trimIndent()
-//
-//                val hasOverlap =
-//                    connection.prepareStatement(overlapSql).use { statement ->
-//                        statement.setLong(1, vet.first)
-//                        statement.setObject(2, end)
-//                        statement.setObject(3, start)
-//
-//                        statement.executeQuery().use { result ->
-//                            result.next() && result.getBoolean(1)
-//                        }
-//                    }
-//
-//                if (hasOverlap) {
-//                    throw IllegalArgumentException(
-//                        "This veterinarian already has an overlapping appointment"
-//                    )
-//                }
-//
-//                val insertSql = """
-//                    INSERT INTO appointments (
-//                        customer_id,
-//                        pet_id,
-//                        vet_profile_id,
-//                        scheduled_start,
-//                        scheduled_end,
-//                        status,
-//                        consultation_fee
-//                    )
-//                    VALUES (?, ?, ?, ?, ?, 'PENDING', ?)
-//                    RETURNING id, status, consultation_fee
-//                """.trimIndent()
-//
-//
-//                val appointment = connection.prepareStatement(insertSql).use { statement ->
-//                    statement.setLong(1, customerId)
-//                    statement.setLong(2, request.petId)
-//                    statement.setLong(3, vet.first)
-//                    statement.setObject(4, start)
-//                    statement.setObject(5, end)
-//                    statement.setBigDecimal(6, vet.second)
-//
-//                    statement.executeQuery().use { result ->
-//                        check(result.next()) {
-//                            "Appointment could not be created"
-//                        }
-//
-//                        AppointmentResponse(
-//                            id = result.getLong("id"),
-//                            customerId = customerId,
-//                            petId = request.petId,
-//                            vetUserId = request.vetUserId,
-//                            scheduledStart = start.toString(),
-//                            scheduledEnd = end.toString(),
-//                            status = result.getString("status"),
-//                            consultationFee =
-//                                result.getBigDecimal("consultation_fee").toDouble()
-//                        )
-//                    }
-//                }
-//
-//                connection.commit()
-//                appointment
-//            } catch (exception: Exception) {
-//                try {
-//                    connection.rollback()
-//                } catch (rollbackException: Exception) {
-//                    exception.addSuppressed(rollbackException)
-//                }
-//
-//                throw exception
-//            } finally {
-//                connection.autoCommit = originalAutoCommit
-//            }
-//        }
-//    }
-//}

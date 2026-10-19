@@ -17,6 +17,14 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.http.content.static
 import io.ktor.server.routing.put
 import io.ktor.server.routing.delete
+import io.ktor.server.routing.patch
+import io.ktor.server.request.receiveMultipart
+import io.ktor.utils.io.readAvailable
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.server.response.header
+import io.ktor.server.response.respondBytes
+import java.io.ByteArrayOutputStream
 
 fun Route.configureRouting() {
 
@@ -1271,6 +1279,473 @@ fun Route.configureRouting() {
             }
         }
 
+        //-------------
+
+        get("/api/appointments") {
+            val principal = call.principal<JWTPrincipal>()
+            val customerId = principal?.payload?.subject?.toLongOrNull()
+
+            if (customerId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@get
+            }
+
+            try {
+                val role = UserRepository.findRoleById(customerId)
+
+                if (role != "CUSTOMER") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only customers can view their appointments")
+                    )
+                    return@get
+                }
+
+                val appointments =
+                    AppointmentRepository.getCustomerAppointments(customerId)
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    AppointmentListResponse(appointments)
+                )
+            } catch (exception: Exception) {
+                application.log.error("Failed to retrieve customer appointments", exception)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to retrieve appointments")
+                )
+            }
+        }
+
+        patch("/api/appointments/{id}/cancel") {
+            val principal = call.principal<JWTPrincipal>()
+            val customerId = principal?.payload?.subject?.toLongOrNull()
+
+            if (customerId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@patch
+            }
+
+            try {
+                val role = UserRepository.findRoleById(customerId)
+
+                if (role != "CUSTOMER") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only customers can cancel appointments")
+                    )
+                    return@patch
+                }
+
+                val appointmentId =
+                    call.parameters["id"]?.toLongOrNull()
+
+                if (appointmentId == null || appointmentId <= 0) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "A valid appointment ID is required")
+                    )
+                    return@patch
+                }
+
+                val cancelled = AppointmentRepository.cancelCustomerAppointment(
+                    customerId = customerId,
+                    appointmentId = appointmentId
+                )
+
+                if (cancelled) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        mapOf("message" to "Appointment cancelled successfully")
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf(
+                            "error" to "Appointment cannot be cancelled. It may not belong to you, may have already started, or may already be completed or cancelled."
+                        )
+                    )
+                }
+            } catch (exception: Exception) {
+                application.log.error("Failed to cancel appointment", exception)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to cancel appointment")
+                )
+            }
+        }
+
+
+        // View appointments assigned to the logged-in veterinarian.
+        get("/api/vets/appointments") {
+            val vetUserId = call.principal<JWTPrincipal>()
+                ?.payload?.subject?.toLongOrNull()
+
+            if (vetUserId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@get
+            }
+
+            try {
+                if (UserRepository.findRoleById(vetUserId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can view these appointments")
+                    )
+                    return@get
+                }
+
+                if (!VetRepository.isVetApproved(vetUserId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved")
+                    )
+                    return@get
+                }
+
+                val appointments =
+                    AppointmentRepository.getVetAppointments(vetUserId)
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    AppointmentListResponse(appointments)
+                )
+            } catch (exception: Exception) {
+                application.log.error(
+                    "Failed to retrieve veterinarian appointments",
+                    exception
+                )
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to retrieve appointments")
+                )
+            }
+        }
+
+        // Update the status of an appointment assigned to this veterinarian.
+        patch("/api/vets/appointments/{id}/status") {
+            val vetUserId = call.principal<JWTPrincipal>()
+                ?.payload?.subject?.toLongOrNull()
+
+            if (vetUserId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@patch
+            }
+
+            try {
+                if (UserRepository.findRoleById(vetUserId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can update appointments")
+                    )
+                    return@patch
+                }
+
+                if (!VetRepository.isVetApproved(vetUserId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved")
+                    )
+                    return@patch
+                }
+
+                val appointmentId = call.parameters["id"]?.toLongOrNull()
+
+                if (appointmentId == null || appointmentId <= 0) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "A valid appointment ID is required")
+                    )
+                    return@patch
+                }
+
+                val request = try {
+                    call.receive<AppointmentActionRequest>()
+                } catch (exception: Exception) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid request body. Provide an action.")
+                    )
+                    return@patch
+                }
+
+                val newStatus = request.action.trim().uppercase()
+
+                if (newStatus != "COMPLETED" && newStatus != "CANCELLED") {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Action must be COMPLETED or CANCELLED")
+                    )
+                    return@patch
+                }
+
+                val updated =
+                    AppointmentRepository.updateVetAppointmentStatus(
+                        vetUserId = vetUserId,
+                        appointmentId = appointmentId,
+                        newStatus = newStatus
+                    )
+
+                if (updated) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        mapOf("message" to "Appointment status updated", "status" to newStatus)
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf(
+                            "error" to "Appointment not found, not assigned to you, not confirmed, or the requested status change is not allowed at this time"
+                        )
+                    )
+                }
+            } catch (exception: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to (exception.message ?: "Invalid appointment status"))
+                )
+            } catch (exception: Exception) {
+                application.log.error(
+                    "Failed to update veterinarian appointment",
+                    exception
+                )
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to update appointment")
+                )
+            }
+        }
+
+
+
+        // Create a consultation for a completed appointment.
+        post("/api/vets/consultations") {
+            val vetUserId = call.principal<JWTPrincipal>()
+                ?.payload?.subject?.toLongOrNull()
+
+            if (vetUserId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@post
+            }
+
+            try {
+                if (UserRepository.findRoleById(vetUserId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can create consultations")
+                    )
+                    return@post
+                }
+
+                if (!VetRepository.isVetApproved(vetUserId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved")
+                    )
+                    return@post
+                }
+
+                val request = try {
+                    call.receive<CreateConsultationRequest>()
+                } catch (exception: Exception) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid consultation request body")
+                    )
+                    return@post
+                }
+
+                if (request.appointmentId <= 0) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "A valid appointment ID is required")
+                    )
+                    return@post
+                }
+
+                val fields = listOf(
+                    request.chiefComplaint,
+                    request.clinicalNotes,
+                    request.diagnosis,
+                    request.treatmentNotes,
+                    request.followUpNotes
+                )
+
+                if (fields.any { it != null && it.length > 10000 }) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Consultation fields must not exceed 10000 characters")
+                    )
+                    return@post
+                }
+
+                val consultation = ConsultationRepository.createConsultation(
+                    vetUserId = vetUserId,
+                    request = request
+                )
+
+                call.respond(HttpStatusCode.Created, consultation)
+
+            } catch (exception: SecurityException) {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You are not authorized for this appointment")
+                )
+            } catch (exception: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to (exception.message ?: "Invalid consultation request"))
+                )
+            } catch (exception: java.sql.SQLException) {
+                if (exception.sqlState == "23505") {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "A consultation already exists for this appointment")
+                    )
+                } else {
+                    application.log.error("Failed to create consultation", exception)
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Unable to create consultation")
+                    )
+                }
+            } catch (exception: Exception) {
+                application.log.error("Failed to create consultation", exception)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to create consultation")
+                )
+            }
+        }
+
+        // List consultations belonging to the logged-in veterinarian.
+        get("/api/vets/consultations") {
+            val vetUserId = call.principal<JWTPrincipal>()
+                ?.payload?.subject?.toLongOrNull()
+
+            if (vetUserId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@get
+            }
+
+            try {
+                if (UserRepository.findRoleById(vetUserId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can view consultations")
+                    )
+                    return@get
+                }
+
+                if (!VetRepository.isVetApproved(vetUserId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved")
+                    )
+                    return@get
+                }
+
+                val consultations =
+                    ConsultationRepository.getVetConsultations(vetUserId)
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    ConsultationListResponse(consultations)
+                )
+
+            } catch (exception: Exception) {
+                application.log.error("Failed to retrieve consultations", exception)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to retrieve consultations")
+                )
+            }
+        }
+
+        // Retrieve one consultation assigned to the logged-in veterinarian.
+        get("/api/vets/consultations/{id}") {
+            val vetUserId = call.principal<JWTPrincipal>()
+                ?.payload?.subject?.toLongOrNull()
+
+            if (vetUserId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication token")
+                )
+                return@get
+            }
+
+            val consultationId =
+                call.parameters["id"]?.toLongOrNull()
+
+            if (consultationId == null || consultationId <= 0) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "A valid consultation ID is required")
+                )
+                return@get
+            }
+
+            try {
+                if (UserRepository.findRoleById(vetUserId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can view consultations")
+                    )
+                    return@get
+                }
+
+                if (!VetRepository.isVetApproved(vetUserId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved")
+                    )
+                    return@get
+                }
+
+                val consultation = ConsultationRepository.getVetConsultation(
+                    vetUserId = vetUserId,
+                    consultationId = consultationId
+                )
+
+                if (consultation == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Consultation not found")
+                    )
+                } else {
+                    call.respond(HttpStatusCode.OK, consultation)
+                }
+
+            } catch (exception: Exception) {
+                application.log.error("Failed to retrieve consultation", exception)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Unable to retrieve consultation")
+                )
+            }
+        }
+
+        configureMedicalDocumentRoutes()
+
 
     }
 
@@ -1305,4 +1780,370 @@ fun Route.configureRouting() {
             )
         }
     }
+}
+
+
+private fun Route.configureMedicalDocumentRoutes() {
+    post("/api/pets/{id}/documents") {
+        val userId = call.principal<JWTPrincipal>()
+            ?.payload?.subject?.toLongOrNull()
+
+        if (userId == null) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid authentication token")
+            )
+            return@post
+        }
+
+        val petId = call.parameters["id"]?.toLongOrNull()
+        if (petId == null || petId <= 0) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "A valid pet ID is required")
+            )
+            return@post
+        }
+
+        try {
+            if (UserRepository.findRoleById(userId) != "CUSTOMER") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "Only customers can upload pet documents")
+                )
+                return@post
+            }
+
+            val allowedTypes = setOf(
+                "LAB_REPORT",
+                "PRESCRIPTION",
+                "MEDICAL_HISTORY",
+                "IMAGING",
+                "OTHER"
+            )
+
+            var documentType: String? = null
+            var consultationId: Long? = null
+            var originalFilename: String? = null
+            var contentType: String? = null
+            var fileBytes: ByteArray? = null
+
+            val multipart = call.receiveMultipart(
+                formFieldLimit = 16 * 1024L
+            )
+
+            multipart.forEachPart { part ->
+                try {
+                    when (part) {
+                        is PartData.FormItem -> {
+                            when (part.name) {
+                                "documentType" -> {
+                                    if (documentType != null) {
+                                        throw IllegalArgumentException(
+                                            "documentType must appear only once"
+                                        )
+                                    }
+                                    documentType = part.value.trim()
+                                }
+
+                                "consultationId" -> {
+                                    if (consultationId != null) {
+                                        throw IllegalArgumentException(
+                                            "consultationId must appear only once"
+                                        )
+                                    }
+                                    consultationId = part.value.toLongOrNull()
+                                        ?: throw IllegalArgumentException(
+                                            "consultationId must be a valid positive number"
+                                        )
+                                    if (consultationId!! <= 0) {
+                                        throw IllegalArgumentException(
+                                            "consultationId must be positive"
+                                        )
+                                    }
+                                }
+
+                                else -> throw IllegalArgumentException(
+                                    "Unexpected form field"
+                                )
+                            }
+                        }
+
+                        is PartData.FileItem -> {
+                            if (fileBytes != null) {
+                                throw IllegalArgumentException(
+                                    "Upload exactly one file per request"
+                                )
+                            }
+
+                            originalFilename = part.originalFileName
+                            contentType = part.contentType?.toString()
+
+                            val output = ByteArrayOutputStream()
+                            val buffer = ByteArray(8192)
+                            val channel = part.provider()
+                            var totalBytes = 0L
+
+                            while (true) {
+                                val count = channel.readAvailable(
+                                    buffer,
+                                    0,
+                                    buffer.size
+                                )
+
+                                if (count == -1) break
+                                if (count == 0) continue
+
+                                totalBytes += count
+
+                                if (totalBytes >
+                                    MedicalDocumentStorage.MAX_FILE_SIZE_BYTES
+                                ) {
+                                    throw IllegalArgumentException(
+                                        "File size must not exceed 10 MB"
+                                    )
+                                }
+
+                                output.write(buffer, 0, count)
+                            }
+
+                            fileBytes = output.toByteArray()
+                        }
+
+                        else -> throw IllegalArgumentException(
+                            "Unsupported multipart field"
+                        )
+                    }
+                } finally {
+                    part.dispose()
+                }
+            }
+
+            val finalDocumentType = documentType
+                ?: throw IllegalArgumentException("documentType is required")
+
+            if (finalDocumentType !in allowedTypes) {
+                throw IllegalArgumentException(
+                    "Invalid documentType. Allowed values: ${allowedTypes.joinToString()}"
+                )
+            }
+
+            val finalFilename = originalFilename
+                ?: throw IllegalArgumentException("A file is required")
+
+            val finalContentType = contentType
+                ?: throw IllegalArgumentException("File content type is required")
+
+            val finalBytes = fileBytes
+                ?: throw IllegalArgumentException("A file is required")
+
+            val record = MedicalDocumentService().uploadDocument(
+                uploaderUserId = userId,
+                petId = petId,
+                consultationId = consultationId,
+                documentType = finalDocumentType,
+                originalFilename = finalFilename,
+                contentType = finalContentType,
+                bytes = finalBytes
+            )
+
+            call.respond(
+                HttpStatusCode.Created,
+                MedicalDocumentResponse(
+                    id = record.id,
+                    petId = record.petId,
+                    consultationId = record.consultationId,
+                    uploadedBy = record.uploadedBy,
+                    documentType = record.documentType,
+                    originalFilename = record.originalFilename,
+                    mimeType = record.mimeType,
+                    fileSizeBytes = record.fileSizeBytes,
+                    processingStatus = record.processingStatus,
+                    uploadedAt = record.uploadedAt.toString()
+                )
+            )
+        } catch (exception: IllegalArgumentException) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to (exception.message ?: "Invalid upload"))
+            )
+        } catch (exception: SecurityException) {
+            call.respond(
+                HttpStatusCode.Forbidden,
+                mapOf("error" to "You are not authorized to upload a document for this pet")
+            )
+        } catch (exception: Exception) {
+            application.log.error("Medical document upload failed", exception)
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to "Unable to upload medical document")
+            )
+        }
+    }
+
+    get("/api/pets/{id}/documents") {
+        val userId = call.principal<JWTPrincipal>()
+            ?.payload
+            ?.subject
+            ?.toLongOrNull()
+
+        if (userId == null) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid authentication token")
+            )
+            return@get
+        }
+
+        val petId = call.parameters["id"]?.toLongOrNull()
+
+        if (petId == null || petId <= 0) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "A valid pet ID is required")
+            )
+            return@get
+        }
+
+        try {
+            if (UserRepository.findRoleById(userId) != "CUSTOMER") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "Only customers can view pet documents")
+                )
+                return@get
+            }
+
+            val documents = MedicalDocumentService()
+                .getDocumentsForPetOwner(userId, petId)
+
+            call.respond(
+                HttpStatusCode.OK,
+                MedicalDocumentListResponse(
+                    documents = documents.map { document ->
+                        MedicalDocumentResponse(
+                            id = document.id,
+                            petId = document.petId,
+                            consultationId = document.consultationId,
+                            uploadedBy = document.uploadedBy,
+                            documentType = document.documentType,
+                            originalFilename = document.originalFilename,
+                            mimeType = document.mimeType,
+                            fileSizeBytes = document.fileSizeBytes,
+                            processingStatus = document.processingStatus,
+                            uploadedAt = document.uploadedAt.toString()
+                        )
+                    }
+                )
+            )
+        } catch (exception: SecurityException) {
+            call.respond(
+                HttpStatusCode.Forbidden,
+                mapOf("error" to "You are not authorized to view these documents")
+            )
+        } catch (exception: Exception) {
+            application.log.error(
+                "Failed to retrieve pet medical documents",
+                exception
+            )
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to "Unable to retrieve medical documents")
+            )
+        }
+    }
+
+
+    get("/api/documents/{id}/download") {
+        val userId = call.principal<JWTPrincipal>()
+            ?.payload
+            ?.subject
+            ?.toLongOrNull()
+
+        if (userId == null) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid authentication token")
+            )
+            return@get
+        }
+
+        val documentId = call.parameters["id"]?.toLongOrNull()
+
+        if (documentId == null || documentId <= 0) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "A valid document ID is required")
+            )
+            return@get
+        }
+
+        try {
+            if (UserRepository.findRoleById(userId) != "CUSTOMER") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "Only customers can download pet documents")
+                )
+                return@get
+            }
+
+            val result = MedicalDocumentService()
+                .downloadDocumentForPetOwner(
+                    ownerUserId = userId,
+                    documentId = documentId
+                )
+
+            if (result == null) {
+                // Use the same response for missing and unauthorized documents.
+                call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Document not found")
+                )
+                return@get
+            }
+
+            val (document, bytes) = result
+
+            if (bytes.isEmpty()) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Stored medical document is empty")
+                )
+                return@get
+            }
+
+            call.response.header(
+                io.ktor.http.HttpHeaders.ContentDisposition,
+                io.ktor.http.ContentDisposition.Attachment
+                    .withParameter(
+                        io.ktor.http.ContentDisposition.Parameters.FileName,
+                        document.originalFilename
+                            .substringAfterLast('/')
+                            .substringAfterLast('\\')
+                            .replace("\"", "")
+                            .replace("\r", "")
+                            .replace("\n", "")
+                    )
+                    .toString()
+            )
+
+            call.respondBytes(
+                bytes = bytes,
+                contentType = io.ktor.http.ContentType.parse(document.mimeType),
+                status = HttpStatusCode.OK
+            )
+        } catch (exception: Exception) {
+            application.log.error(
+                "Medical document download failed",
+                exception
+            )
+
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to "Unable to download medical document")
+            )
+        }
+    }
+
+
 }

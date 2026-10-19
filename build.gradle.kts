@@ -22,6 +22,7 @@ dependencies {
     // Ktor server
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.core)
+    implementation("io.ktor:ktor-server-core-jvm:3.6.0")
     implementation(ktorLibs.server.netty)
 
     // Logging
