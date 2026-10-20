@@ -1,0 +1,300 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Pets | VetPlatform</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <a href="../index.html" class="brand sidebar-brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="sidebar-label">MENU</p>
+
+        <nav class="sidebar-nav" aria-label="Customer navigation">
+            <a href="dashboard.html" class="sidebar-link">
+                <span class="sidebar-icon">▦</span>
+                Dashboard
+            </a>
+
+            <a href="pets.html" class="sidebar-link active">
+                <span class="sidebar-icon">🐾</span>
+                My Pets
+            </a>
+
+            <a href="#" class="sidebar-link">
+                <span class="sidebar-icon">▣</span>
+                Appointments
+            </a>
+
+            <a href="medical-records.html" class="sidebar-link">
+                <span class="sidebar-icon">♡</span>
+                Medical Records
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-help">
+                <span class="help-icon">?</span>
+                <div>
+                    <strong>Need help?</strong>
+                    <p>We're here for you.</p>
+                </div>
+            </div>
+
+            <a href="../index.html" class="sidebar-link">
+                <span class="sidebar-icon">↩</span>
+                Back to website
+            </a>
+
+            <button type="button" class="sidebar-link logout-button"
+                    id="logout-button">
+                <span class="sidebar-icon">⇥</span>
+                Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button type="button" id="sidebar-toggle"
+                        class="menu-toggle"
+                        aria-label="Toggle navigation"
+                        aria-expanded="false">
+                    ☰
+                </button>
+
+                <div>
+                    <p class="breadcrumb">Workspace / My Pets</p>
+                    <h1 class="page-title">My Pets</h1>
+                </div>
+            </div>
+
+            <div class="header-profile">
+                <div class="profile-avatar" aria-hidden="true">👤</div>
+                <div class="profile-info">
+                    <strong id="customer-name">Pet Parent</strong>
+                    <span>Customer account</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-body">
+
+            <div class="welcome-banner">
+                <div>
+                    <span class="welcome-eyebrow">YOUR PET FAMILY</span>
+                    <h2>Every companion matters. 🐾</h2>
+                    <p>
+                        Manage your pets' profiles and keep their
+                        important information organized.
+                    </p>
+
+                    <button type="button" id="open-pet-form"
+                            class="btn btn-primary">
+                        + Add a pet
+                    </button>
+                </div>
+
+                <div class="welcome-decoration" aria-hidden="true">🐕</div>
+            </div>
+
+            <section class="content-section">
+
+                <div class="section-header">
+                    <div>
+                        <h2>Your companions</h2>
+                        <p id="pet-summary">Your registered pets will appear here.</p>
+                    </div>
+                </div>
+
+                <div class="pet-toolbar">
+                    <input
+                            type="search"
+                            id="pet-search"
+                            class="form-control"
+                            placeholder="Search by pet name or species..."
+                            aria-label="Search pets"
+                    >
+                </div>
+
+                <div id="pet-list" class="pet-grid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🐾</div>
+                        <h3>No pets added yet</h3>
+                        <p>
+                            Add your first pet to start organizing
+                            their information.
+                        </p>
+                        <button type="button" class="btn btn-primary"
+                                id="empty-add-pet">
+                            + Add your first pet
+                        </button>
+                    </div>
+                </div>
+
+                <p id="pet-message" class="pet-message hidden"
+                   role="status"></p>
+            </section>
+
+            <section class="content-section panel" id="pet-form-section"
+                     hidden>
+                <div class="section-header">
+                    <div>
+                        <h2>Add a pet</h2>
+                        <p>Enter your pet's basic information.</p>
+                    </div>
+                </div>
+
+                <form id="pet-form">
+
+                    <div class="pet-form-grid">
+
+                        <div class="form-group">
+                            <label class="form-label" for="pet-name">
+                                Pet name *
+                            </label>
+                            <input
+                                    class="form-control"
+                                    id="pet-name"
+                                    name="name"
+                                    type="text"
+                                    placeholder="e.g. Bruno"
+                                    maxlength="100"
+                                    required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="pet-species">
+                                Species *
+                            </label>
+                            <select class="form-control"
+                                    id="pet-species"
+                                    name="species"
+                                    required>
+                                <option value="">Select species</option>
+                                <option value="Dog">Dog</option>
+                                <option value="Cat">Cat</option>
+                                <option value="Bird">Bird</option>
+                                <option value="Rabbit">Rabbit</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="pet-breed">
+                                Breed
+                            </label>
+                            <input
+                                    class="form-control"
+                                    id="pet-breed"
+                                    name="breed"
+                                    type="text"
+                                    placeholder="e.g. Labrador"
+                                    maxlength="100"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="pet-gender">
+                                Gender
+                            </label>
+                            <select class="form-control"
+                                    id="pet-gender"
+                                    name="gender">
+                                <option value="">Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Unknown">Unknown</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="pet-birth-date">
+                                Date of birth
+                            </label>
+                            <input
+                                    class="form-control"
+                                    id="pet-birth-date"
+                                    name="birthDate"
+                                    type="date"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="pet-weight">
+                                Weight (kg)
+                            </label>
+                            <input
+                                    class="form-control"
+                                    id="pet-weight"
+                                    name="weight"
+                                    type="number"
+                                    min="0.01"
+                                    max="1000"
+                                    step="0.01"
+                                    placeholder="e.g. 12.5"
+                            >
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="pet-notes">
+                            Additional notes
+                        </label>
+                        <textarea
+                                class="form-control"
+                                id="pet-notes"
+                                name="notes"
+                                maxlength="1000"
+                                placeholder="Optional notes about your pet"
+                        ></textarea>
+                    </div>
+
+                    <div class="pet-form-actions">
+                        <button type="button" id="cancel-pet-form"
+                                class="btn btn-outline">
+                            Cancel
+                        </button>
+
+                        <button type="submit" class="btn btn-primary">
+                            Save pet
+                        </button>
+                    </div>
+
+                    <p class="form-help">
+                        This initial interface keeps entries in the
+                        current page session only. Database saving will
+                        be connected in a later integration step.
+                    </p>
+                </form>
+            </section>
+
+            <footer class="dashboard-footer">
+                <p>VetPlatform · Your pet care information, organized.</p>
+            </footer>
+
+        </section>
+    </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/pets.js"></script>
+
+</body>
+</html>

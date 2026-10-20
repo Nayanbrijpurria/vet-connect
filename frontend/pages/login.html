@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign in to your VetPlatform customer account.">
+    <title>Log in | VetPlatform</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<main class="auth-page">
+    <section class="auth-panel">
+        <div class="auth-form-wrapper">
+
+            <a href="index.html" class="brand">
+                <span class="brand-mark">✚</span>
+                <span>VetPlatform</span>
+            </a>
+
+            <h1 class="auth-heading">Welcome back</h1>
+
+            <p class="auth-subtitle">
+                Sign in to manage your pets and their medical records.
+            </p>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">
+                        Email address
+                    </label>
+
+                    <input
+                            class="form-control"
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="email"
+                            required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">
+                        Password
+                    </label>
+
+                    <input
+                            class="form-control"
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                    >
+                </div>
+
+                <p id="login-message" class="form-error hidden"
+                   role="alert"></p>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    Sign in →
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                <a href="index.html" class="text-primary">
+                    ← Back to home
+                </a>
+            </p>
+
+            <p class="auth-footer">
+                Your account is for managing pet-care information.
+            </p>
+        </div>
+    </section>
+
+    <aside class="auth-side-panel">
+        <div class="auth-art" aria-hidden="true">🐕</div>
+
+        <h2>All their important information, together.</h2>
+
+        <p>
+            Keep pet profiles, appointment information, and medical
+            documents organized in one place.
+        </p>
+    </aside>
+</main>
+
+<!-- Authentication behavior will be connected in the next phase. -->
+
+</body>
+</html>

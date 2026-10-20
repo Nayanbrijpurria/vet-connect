@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | VetPlatform</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <a href="index.html" class="brand sidebar-brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="sidebar-label">MENU</p>
+
+        <nav class="sidebar-nav" aria-label="Customer navigation">
+            <a href="dashboard.html" class="sidebar-link active">
+                <span class="sidebar-icon">▦</span>
+                Dashboard
+            </a>
+
+            <a href="pets.html" class="sidebar-link">
+                <span class="sidebar-icon">🐾</span>
+                My Pets
+            </a>
+
+            <a href="appointments.html" class="sidebar-link">
+                <span class="sidebar-icon">▣</span>
+                Appointments
+            </a>
+
+            <a href="medical-records.html" class="sidebar-link">
+                <span class="sidebar-icon">♡</span>
+                Medical Records
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-help">
+                <span class="help-icon">?</span>
+                <div>
+                    <strong>Need help?</strong>
+                    <p>We're here for you.</p>
+                </div>
+            </div>
+
+            <a href="index.html" class="sidebar-link">
+                <span class="sidebar-icon">↩</span>
+                Back to website
+            </a>
+
+            <button type="button" class="sidebar-link logout-button"
+                    id="logout-button">
+                <span class="sidebar-icon">⇥</span>
+                Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button type="button" id="sidebar-toggle"
+                        class="menu-toggle"
+                        aria-label="Toggle navigation"
+                        aria-expanded="false">
+                    ☰
+                </button>
+
+                <div>
+                    <p class="breadcrumb">Workspace / Dashboard</p>
+                    <h1 class="page-title">Dashboard</h1>
+                </div>
+            </div>
+
+            <div class="header-profile">
+                <div class="profile-avatar" aria-hidden="true">👤</div>
+                <div class="profile-info">
+                    <strong id="customer-name">Pet Parent</strong>
+                    <span>Customer account</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-body">
+
+            <div class="welcome-banner">
+                <div>
+                    <span class="welcome-eyebrow">YOUR PET CARE SPACE</span>
+                    <h2>Welcome back, Pet Parent! 🐾</h2>
+                    <p>
+                        Keep your pets' information, appointments,
+                        and medical records organized.
+                    </p>
+
+                    <a href="pets.html" class="btn btn-primary">
+                        View my pets →
+                    </a>
+                </div>
+
+                <div class="welcome-decoration" aria-hidden="true">🐕</div>
+            </div>
+
+            <section class="stats-grid" aria-label="Pet care summary">
+
+                <article class="stat-card">
+                    <div class="stat-top">
+                        <span class="stat-icon green">🐾</span>
+                        <span class="stat-caption">YOUR FAMILY</span>
+                    </div>
+                    <p class="stat-label">My Pets</p>
+                    <p class="stat-value" id="pet-count">—</p>
+                    <a href="pets.html" class="stat-link">View pets →</a>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-top">
+                        <span class="stat-icon blue">▣</span>
+                        <span class="stat-caption">YOUR SCHEDULE</span>
+                    </div>
+                    <p class="stat-label">Appointments</p>
+                    <p class="stat-value" id="appointment-count">—</p>
+                    <span class="stat-description">Appointment overview</span>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-top">
+                        <span class="stat-icon purple">♡</span>
+                        <span class="stat-caption">HEALTH FILES</span>
+                    </div>
+                    <p class="stat-label">Medical Records</p>
+                    <p class="stat-value" id="record-count">—</p>
+                    <a href="medical-records.html" class="stat-link">
+                        View records →
+                    </a>
+                </article>
+
+            </section>
+
+            <section class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h2>My pets</h2>
+                        <p>Your registered companions</p>
+                    </div>
+
+                    <a href="pets.html" class="text-link">View all →</a>
+                </div>
+
+                <div id="dashboard-pets" class="pet-grid">
+                    <article class="empty-state">
+                        <div class="empty-state-icon">🐾</div>
+                        <h3>Your pets will appear here</h3>
+                        <p>
+                            Your pet profiles will be displayed here
+                            once we connect the backend.
+                        </p>
+                        <a href="pets.html" class="btn btn-secondary">
+                            Open My Pets
+                        </a>
+                    </article>
+                </div>
+            </section>
+
+            <div class="dashboard-columns">
+
+                <section class="content-section panel">
+                    <div class="section-header">
+                        <div>
+                            <h2>Upcoming appointments</h2>
+                            <p>Keep track of your visits</p>
+                        </div>
+
+                        <a href="appointments.html" class="btn btn-secondary">
+                            Book an appointment
+                        </a>
+                    </div>
+
+                    <div id="dashboard-appointments" class="list-container">
+                        <div class="empty-state compact">
+                            <div class="empty-state-icon">📅</div>
+                            <h3>No appointments displayed yet</h3>
+                            <p>
+                                Appointment information will appear
+                                here when connected to your account.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="content-section panel">
+                    <div class="section-header">
+                        <div>
+                            <h2>Recent medical records</h2>
+                            <p>Your pets' health documents</p>
+                        </div>
+
+                        <a href="medical-records.html" class="text-link">
+                            View all →
+                        </a>
+                    </div>
+
+                    <div id="dashboard-records" class="list-container">
+                        <div class="empty-state compact">
+                            <div class="empty-state-icon">📋</div>
+                            <h3>No records displayed yet</h3>
+                            <p>
+                                Medical documents will appear here
+                                after they are loaded from your account.
+                            </p>
+                            <a href="medical-records.html"
+                               class="text-link">
+                                Open medical records →
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <footer class="dashboard-footer">
+                <p>VetPlatform · Your pet care information, organized.</p>
+            </footer>
+
+        </section>
+    </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/dashboard.js"></script>
+
+</body>
+</html>

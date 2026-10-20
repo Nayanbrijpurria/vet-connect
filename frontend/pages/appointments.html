@@ -1,0 +1,145 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments | VetPlatform</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+        <a href="index.html" class="brand sidebar-brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="sidebar-label">MENU</p>
+        <nav class="sidebar-nav" aria-label="Customer navigation">
+            <a href="dashboard.html" class="sidebar-link">
+                <span class="sidebar-icon">▦</span> Dashboard
+            </a>
+            <a href="pets.html" class="sidebar-link">
+                <span class="sidebar-icon">🐾</span> My Pets
+            </a>
+            <a href="appointments.html" class="sidebar-link active">
+                <span class="sidebar-icon">▣</span> Appointments
+            </a>
+            <a href="medical-records.html" class="sidebar-link">
+                <span class="sidebar-icon">♡</span> Medical Records
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-help">
+                <span class="help-icon">?</span>
+                <div><strong>Need help?</strong><p>We're here for you.</p></div>
+            </div>
+            <a href="index.html" class="sidebar-link">
+                <span class="sidebar-icon">↩</span> Back to website
+            </a>
+            <button type="button" class="sidebar-link logout-button"
+                    id="logout-button">
+                <span class="sidebar-icon">⇥</span> Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button type="button" id="sidebar-toggle"
+                        class="menu-toggle" aria-label="Toggle navigation"
+                        aria-expanded="false">☰</button>
+                <div>
+                    <p class="breadcrumb">Workspace / Appointments</p>
+                    <h1 class="page-title">Appointments</h1>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-body">
+            <div class="welcome-banner">
+                <div>
+                    <span class="welcome-eyebrow">CARE FOR YOUR COMPANION</span>
+                    <h2>Book a veterinary consultation 🐾</h2>
+                    <p>Plan your pet's next visit and keep their care organized.</p>
+                </div>
+                <div class="welcome-decoration" aria-hidden="true">🩺</div>
+            </div>
+
+            <section class="content-section panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Request an appointment</h2>
+                        <p>Enter your preferred consultation details.</p>
+                    </div>
+                </div>
+
+                <form id="appointment-form" class="appointment-form">
+                    <label for="pet-name">Pet name</label>
+                    <input id="pet-name" name="petName" type="text"
+                           placeholder="e.g. Bruno" required>
+
+                    <label for="consultation-type">Consultation type</label>
+                    <select id="consultation-type" name="consultationType" required>
+                        <option value="">Select consultation type</option>
+                        <option value="clinic">Clinic visit</option>
+                        <option value="online">Online consultation</option>
+                        <option value="follow-up">Follow-up consultation</option>
+                    </select>
+
+                    <label for="appointment-date">Preferred date</label>
+                    <input id="appointment-date" name="appointmentDate"
+                           type="date" required>
+
+                    <label for="appointment-time">Preferred time</label>
+                    <select id="appointment-time" name="appointmentTime" required>
+                        <option value="">Choose a time</option>
+                        <option>09:00 AM</option>
+                        <option>10:00 AM</option>
+                        <option>11:00 AM</option>
+                        <option>12:00 PM</option>
+                        <option>02:00 PM</option>
+                        <option>03:00 PM</option>
+                        <option>04:00 PM</option>
+                    </select>
+
+                    <label for="reason">Reason for consultation</label>
+                    <textarea id="reason" name="reason" rows="4"
+                              placeholder="Describe your pet's concern"
+                              required></textarea>
+
+                    <button type="submit" class="btn btn-primary">
+                        Submit appointment request
+                    </button>
+                    <p id="appointment-message" role="status"
+                       aria-live="polite"></p>
+                </form>
+            </section>
+
+            <section class="content-section panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Your appointment requests</h2>
+                        <p>Requests saved in this browser will appear below.</p>
+                    </div>
+                </div>
+                <div id="appointment-list" class="list-container"></div>
+            </section>
+
+            <footer class="dashboard-footer">
+                <p>VetPlatform · Your pet care information, organized.</p>
+            </footer>
+        </section>
+    </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/dashboard.js"></script>
+<script src="../js/appointments.js"></script>
+</body>
+</html>

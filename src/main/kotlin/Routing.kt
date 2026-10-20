@@ -2053,7 +2053,6 @@ private fun Route.configureMedicalDocumentRoutes() {
         }
     }
 
-
     get("/api/documents/{id}/download") {
         val userId = call.principal<JWTPrincipal>()
             ?.payload

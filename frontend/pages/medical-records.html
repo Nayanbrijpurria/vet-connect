@@ -1,0 +1,162 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Records | VetPlatform</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <a href="index.html" class="brand sidebar-brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="sidebar-label">MENU</p>
+
+        <nav class="sidebar-nav" aria-label="Customer navigation">
+            <a href="dashboard.html" class="sidebar-link">
+                <span class="sidebar-icon">▦</span> Dashboard
+            </a>
+            <a href="pets.html" class="sidebar-link">
+                <span class="sidebar-icon">🐾</span> My Pets
+            </a>
+            <a href="appointments.html" class="sidebar-link">
+                <span class="sidebar-icon">▣</span> Appointments
+            </a>
+            <a href="medical-records.html" class="sidebar-link active">
+                <span class="sidebar-icon">♡</span> Medical Records
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-help">
+                <span class="help-icon">?</span>
+                <div>
+                    <strong>Need help?</strong>
+                    <p>We're here for you.</p>
+                </div>
+            </div>
+
+            <a href="index.html" class="sidebar-link">
+                <span class="sidebar-icon">↩</span> Back to website
+            </a>
+
+            <button type="button" class="sidebar-link logout-button"
+                    id="logout-button">
+                <span class="sidebar-icon">⇥</span> Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button type="button" id="sidebar-toggle"
+                        class="menu-toggle"
+                        aria-label="Toggle navigation"
+                        aria-expanded="false">☰</button>
+
+                <div>
+                    <p class="breadcrumb">Workspace / Medical Records</p>
+                    <h1 class="page-title">Medical Records</h1>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-body">
+
+            <div class="welcome-banner">
+                <div>
+                    <span class="welcome-eyebrow">YOUR PET'S HEALTH HISTORY</span>
+                    <h2>Every record matters. 🩺</h2>
+                    <p>
+                        Keep prescriptions, laboratory reports and other
+                        veterinary documents organized in one place.
+                    </p>
+                </div>
+                <div class="welcome-decoration" aria-hidden="true">📋</div>
+            </div>
+
+            <section class="content-section panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Upload a medical document</h2>
+                        <p>Select a pet and add a prescription or report.</p>
+                    </div>
+                </div>
+
+                <form id="medical-record-form" class="medical-record-form">
+                    <label for="record-pet">Pet name</label>
+                    <input id="record-pet" name="petName" type="text"
+                           placeholder="Enter your pet's name" required>
+
+                    <label for="record-type">Document type</label>
+                    <select id="record-type" name="recordType" required>
+                        <option value="">Select document type</option>
+                        <option value="Prescription">Prescription</option>
+                        <option value="Lab Report">Lab report</option>
+                        <option value="Vaccination">Vaccination record</option>
+                        <option value="Discharge Summary">Discharge summary</option>
+                        <option value="Imaging">X-ray / Imaging report</option>
+                        <option value="Other">Other</option>
+                    </select>
+
+                    <label for="record-date">Document date</label>
+                    <input id="record-date" name="recordDate" type="date"
+                           required>
+
+                    <label for="record-file">Choose document</label>
+                    <input id="record-file" name="recordFile" type="file"
+                           accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
+                           required>
+
+                    <p class="form-hint">
+                        Supported formats: PDF, JPG, PNG, WEBP and TXT.
+                        Maximum file size: 10 MB.
+                    </p>
+
+                    <button type="submit" class="btn btn-primary">
+                        Upload document
+                    </button>
+
+                    <p id="record-message" role="status"
+                       aria-live="polite"></p>
+                </form>
+            </section>
+
+            <section class="content-section panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Medical document history</h2>
+                        <p id="record-summary">
+                            Your saved demo documents will appear here.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="medical-record-list" class="medical-record-list">
+                    <p>No medical documents added yet.</p>
+                </div>
+            </section>
+
+            <footer class="dashboard-footer">
+                <p>VetPlatform · Your pet care information, organized.</p>
+            </footer>
+
+        </section>
+    </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/dashboard.js"></script>
+<script src="../js/medical-records.js"></script>
+</body>
+</html>
