@@ -10,6 +10,9 @@ import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.routing.routing
+import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 
 fun Application.module() {
     FlywayFactory.migrate()
@@ -17,6 +20,19 @@ fun Application.module() {
 }
 
 fun Application.configureApplication() {
+    install(CORS) {
+        allowHost("localhost:5500", schemes = listOf("http"))
+        allowHost("127.0.0.1:5500", schemes = listOf("http"))
+
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Options)
+
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
+    }
     install(ContentNegotiation) {
         json()
     }

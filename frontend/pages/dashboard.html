@@ -82,13 +82,70 @@
                 </div>
             </div>
 
-            <div class="header-profile">
-                <div class="profile-avatar" aria-hidden="true">👤</div>
-                <div class="profile-info">
-                    <strong id="customer-name">Pet Parent</strong>
-                    <span>Customer account</span>
+
+            <div class="header-actions">
+                <div class="notification-wrapper">
+                    <button
+                            type="button"
+                            class="notification-button"
+                            id="notification-button"
+                            aria-label="Notifications"
+                            aria-expanded="false"
+                            aria-controls="notification-panel"
+                    >
+                        <span aria-hidden="true">🔔</span>
+                        <span
+                                class="notification-badge hidden"
+                                id="notification-count"
+                        >0</span>
+                    </button>
+
+                    <section
+                            class="notification-panel hidden"
+                            id="notification-panel"
+                            aria-label="Notifications"
+                    >
+                        <div class="notification-panel-header">
+                            <div>
+                                <h2>Notifications</h2>
+                                <p id="notification-summary">You're all caught up.</p>
+                            </div>
+
+                            <button
+                                    type="button"
+                                    class="notification-mark-read"
+                                    id="mark-all-read"
+                            >
+                                Mark all read
+                            </button>
+                        </div>
+
+                        <div
+                                class="notification-list"
+                                id="notification-list"
+                                aria-live="polite"
+                        ></div>
+
+                        <div class="notification-panel-footer">
+                            <button
+                                    type="button"
+                                    id="clear-notifications"
+                            >
+                                Clear all notifications
+                            </button>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="header-profile">
+                    <div class="profile-avatar" aria-hidden="true">👤</div>
+                    <div class="profile-info">
+                        <strong id="customer-name">Pet Parent</strong>
+                        <span>Customer account</span>
+                    </div>
                 </div>
             </div>
+
         </header>
 
         <section class="dashboard-body">
@@ -238,6 +295,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/dashboard.js"></script>
+<script src="../js/notifications.js"></script>
 
 </body>
 </html>

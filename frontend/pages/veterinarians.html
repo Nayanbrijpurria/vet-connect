@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find a Veterinarian | VetPlatform</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/veterinarians.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <a href="index.html" class="brand sidebar-brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="sidebar-label">MENU</p>
+
+        <nav class="sidebar-nav" aria-label="Customer navigation">
+            <a href="dashboard.html" class="sidebar-link">
+                <span class="sidebar-icon">▦</span>
+                Dashboard
+            </a>
+
+            <a href="pets.html" class="sidebar-link">
+                <span class="sidebar-icon">🐾</span>
+                My Pets
+            </a>
+
+            <a href="veterinarians.html" class="sidebar-link active"
+               aria-current="page">
+                <span class="sidebar-icon">🩺</span>
+                Veterinarians
+            </a>
+
+            <a href="appointments.html" class="sidebar-link">
+                <span class="sidebar-icon">▣</span>
+                Appointments
+            </a>
+
+            <a href="medical-records.html" class="sidebar-link">
+                <span class="sidebar-icon">♡</span>
+                Medical Records
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-help">
+                <span class="help-icon">?</span>
+                <div>
+                    <strong>Need help?</strong>
+                    <p>We're here for you.</p>
+                </div>
+            </div>
+
+            <a href="index.html" class="sidebar-link">
+                <span class="sidebar-icon">↩</span>
+                Back to website
+            </a>
+
+            <button type="button" class="sidebar-link logout-button"
+                    id="logout-button">
+                <span class="sidebar-icon">⇥</span>
+                Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button type="button" id="sidebar-toggle"
+                        class="menu-toggle"
+                        aria-label="Toggle navigation"
+                        aria-expanded="false">
+                    ☰
+                </button>
+
+                <div>
+                    <p class="breadcrumb">Workspace / Veterinarians</p>
+                    <h1 class="page-title">Find a Veterinarian</h1>
+                </div>
+            </div>
+
+            <a href="appointments.html" class="btn btn-primary">
+                My appointments
+            </a>
+        </header>
+
+        <section class="veterinarians-body">
+
+            <section class="vet-hero">
+                <div class="vet-hero-content">
+                    <span class="vet-eyebrow">CARE FOR EVERY PAW</span>
+
+                    <h2>Find the right care for your best friend.</h2>
+
+                    <p>
+                        Explore veterinarian profiles and find a professional
+                        suited to your pet's needs.
+                    </p>
+
+                    <a href="#veterinarian-directory"
+                       class="btn btn-primary">
+                        Explore veterinarians ↓
+                    </a>
+                </div>
+
+                <div class="vet-hero-illustration" aria-hidden="true">
+                    🩺🐕
+                </div>
+            </section>
+
+            <section class="vet-trust-note" aria-label="Demo information">
+                <span aria-hidden="true">ℹ️</span>
+                <p>
+                    <strong>Preview mode:</strong>
+                    The profiles and ratings on this page are sample data.
+                    They do not represent verified veterinarians.
+                </p>
+            </section>
+
+            <section class="vet-directory" id="veterinarian-directory">
+
+                <div class="vet-section-heading">
+                    <div>
+                        <h2>Meet our veterinarians</h2>
+                        <p id="vet-results-summary">
+                            Browse sample veterinarian profiles.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="vet-filters">
+                    <div class="vet-search-field">
+                        <label for="vet-search">Search veterinarians</label>
+                        <input
+                                type="search"
+                                id="vet-search"
+                                placeholder="Search by name or specialization..."
+                                autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="vet-filter-field">
+                        <label for="vet-specialization">
+                            Specialization
+                        </label>
+
+                        <select id="vet-specialization">
+                            <option value="all">All specializations</option>
+                            <option value="General Practice">
+                                General Practice
+                            </option>
+                            <option value="Dermatology">Dermatology</option>
+                            <option value="Surgery">Surgery</option>
+                            <option value="Dentistry">Dentistry</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary"
+                            id="reset-vet-filters">
+                        Reset filters
+                    </button>
+                </div>
+
+                <div class="vet-results-grid" id="veterinarian-list">
+
+                    <div class="vet-loading" role="status">
+                        Loading veterinarian profiles...
+                    </div>
+
+                </div>
+
+                <p class="vet-demo-disclaimer">
+                    Sample profiles are for interface demonstration only.
+                    Real profiles, credentials, availability, fees, and
+                    reviews must be supplied and verified before launch.
+                </p>
+
+            </section>
+
+            <footer class="dashboard-footer">
+                <p>VetPlatform · Helping you care for your pets.</p>
+            </footer>
+
+        </section>
+    </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/veterinarians.js"></script>
+
+</body>
+</html>

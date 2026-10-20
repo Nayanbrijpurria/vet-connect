@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veterinarian Profile | VetPlatform</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/veterinarians.css">
+    <link rel="stylesheet" href="../css/veterinarian-profile.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <a href="index.html" class="brand sidebar-brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="sidebar-label">MENU</p>
+
+        <nav class="sidebar-nav" aria-label="Customer navigation">
+            <a href="dashboard.html" class="sidebar-link">
+                <span class="sidebar-icon">▦</span>
+                Dashboard
+            </a>
+
+            <a href="pets.html" class="sidebar-link">
+                <span class="sidebar-icon">🐾</span>
+                My Pets
+            </a>
+
+            <a href="veterinarians.html" class="sidebar-link active"
+               aria-current="page">
+                <span class="sidebar-icon">🩺</span>
+                Veterinarians
+            </a>
+
+            <a href="appointments.html" class="sidebar-link">
+                <span class="sidebar-icon">▣</span>
+                Appointments
+            </a>
+
+            <a href="medical-records.html" class="sidebar-link">
+                <span class="sidebar-icon">♡</span>
+                Medical Records
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-help">
+                <span class="help-icon">?</span>
+                <div>
+                    <strong>Need help?</strong>
+                    <p>We're here for you.</p>
+                </div>
+            </div>
+
+            <a href="index.html" class="sidebar-link">
+                <span class="sidebar-icon">↩</span>
+                Back to website
+            </a>
+
+            <button type="button" class="sidebar-link logout-button"
+                    id="logout-button">
+                <span class="sidebar-icon">⇥</span>
+                Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button type="button" id="sidebar-toggle"
+                        class="menu-toggle"
+                        aria-label="Toggle navigation"
+                        aria-expanded="false">
+                    ☰
+                </button>
+
+                <div>
+                    <p class="breadcrumb">
+                        Workspace / Veterinarians / Profile
+                    </p>
+                    <h1 class="page-title">Veterinarian Profile</h1>
+                </div>
+            </div>
+
+            <a href="veterinarians.html" class="btn btn-secondary">
+                ← All veterinarians
+            </a>
+        </header>
+
+        <section class="veterinarians-body">
+
+            <div class="vet-profile-demo-notice">
+                <strong>Demo mode:</strong>
+                This profile, its ratings, fees, and reviews are sample data.
+                No veterinarian credentials have been verified.
+            </div>
+
+            <div id="profile-message" class="profile-message hidden"
+                 role="status" aria-live="polite"></div>
+
+            <section id="veterinarian-profile" class="vet-profile-card">
+                <p>Loading veterinarian profile...</p>
+            </section>
+
+            <section class="vet-profile-reviews">
+
+                <div class="vet-profile-section-heading">
+                    <div>
+                        <h2>Ratings and reviews</h2>
+                        <p>Read feedback and share your experience.</p>
+                    </div>
+
+                    <div class="review-summary" id="review-summary">
+                        <span class="review-summary-score">—</span>
+                        <span>Loading ratings...</span>
+                    </div>
+                </div>
+
+                <div class="review-layout">
+
+                    <section class="review-form-card">
+                        <h3>Write a review</h3>
+                        <p class="review-form-note">
+                            Demo reviews are stored in this browser only.
+                            Real consultation verification will be added later.
+                        </p>
+
+                        <form id="review-form">
+                            <fieldset class="star-rating-fieldset">
+                                <legend>Your rating</legend>
+
+                                <div class="star-rating-input"
+                                     role="radiogroup"
+                                     aria-label="Choose a rating from one to five stars">
+                                    <input type="radio" id="rating-5"
+                                           name="rating" value="5" required>
+                                    <label for="rating-5"
+                                           aria-label="5 stars">★</label>
+
+                                    <input type="radio" id="rating-4"
+                                           name="rating" value="4">
+                                    <label for="rating-4"
+                                           aria-label="4 stars">★</label>
+
+                                    <input type="radio" id="rating-3"
+                                           name="rating" value="3">
+                                    <label for="rating-3"
+                                           aria-label="3 stars">★</label>
+
+                                    <input type="radio" id="rating-2"
+                                           name="rating" value="2">
+                                    <label for="rating-2"
+                                           aria-label="2 stars">★</label>
+
+                                    <input type="radio" id="rating-1"
+                                           name="rating" value="1">
+                                    <label for="rating-1"
+                                           aria-label="1 star">★</label>
+                                </div>
+                            </fieldset>
+
+                            <div class="review-form-field">
+                                <label for="review-title">Review title</label>
+                                <input
+                                        type="text"
+                                        id="review-title"
+                                        name="title"
+                                        maxlength="80"
+                                        placeholder="Summarize your experience"
+                                        required
+                                >
+                            </div>
+
+                            <div class="review-form-field">
+                                <label for="review-comment">Your review</label>
+                                <textarea
+                                        id="review-comment"
+                                        name="comment"
+                                        rows="5"
+                                        minlength="10"
+                                        maxlength="1000"
+                                        placeholder="Share your feedback..."
+                                        required
+                                ></textarea>
+                                <span class="review-character-hint">
+                                    10–1000 characters
+                                </span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                Submit review
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="review-list-card">
+                        <div class="review-list-heading">
+                            <h3>Customer reviews</h3>
+                            <span id="review-count">0 reviews</span>
+                        </div>
+
+                        <div id="review-list" class="review-list">
+                            <p class="review-empty">
+                                Loading reviews...
+                            </p>
+                        </div>
+                    </section>
+
+                </div>
+            </section>
+
+            <footer class="dashboard-footer">
+                <p>VetPlatform · Helping you care for your pets.</p>
+            </footer>
+
+        </section>
+    </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/veterinarian-profile.js"></script>
+
+</body>
+</html>

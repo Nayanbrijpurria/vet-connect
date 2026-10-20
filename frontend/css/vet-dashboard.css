@@ -1,0 +1,418 @@
+
+.vet-layout {
+    min-height: 100vh;
+}
+
+.vet-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    padding: 27px 17px 20px;
+    background: #fff;
+    border-right: 1px solid var(--border);
+}
+
+.vet-sidebar .brand {
+    padding: 0 8px;
+    margin-bottom: 40px;
+}
+
+.vet-menu-label {
+    margin: 0 12px 13px;
+    color: var(--text-muted);
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+
+.vet-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.vet-nav-link {
+    display: block;
+    width: 100%;
+    padding: 13px 12px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 650;
+    text-align: left;
+    text-decoration: none;
+}
+
+.vet-nav-link:hover,
+.vet-nav-link.active {
+    color: var(--primary-dark);
+    background: var(--primary-light);
+}
+
+.vet-sidebar-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: auto;
+}
+
+.vet-logout {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.vet-main {
+    min-height: 100vh;
+    margin-left: 250px;
+}
+
+.vet-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 17px 34px;
+    background: rgba(255, 255, 255, .96);
+    border-bottom: 1px solid var(--border);
+}
+
+.vet-breadcrumb {
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-size: .78rem;
+}
+
+.vet-header h1 {
+    margin: 0;
+    font-size: 1.45rem;
+    letter-spacing: -.03em;
+}
+
+.vet-account {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    max-width: 280px;
+}
+
+.vet-avatar {
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    background: var(--primary-light);
+    border-radius: 50%;
+    font-size: 1.25rem;
+}
+
+.vet-account strong,
+.vet-account span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.vet-account strong {
+    font-size: .86rem;
+}
+
+.vet-account span {
+    color: var(--text-muted);
+    font-size: .76rem;
+}
+
+.vet-content {
+    width: min(1450px, 100%);
+    margin: auto;
+    padding: 30px 34px;
+}
+
+.vet-welcome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 34px;
+    background:
+            radial-gradient(circle at 90% 15%, #d2eddb 0, transparent 28%),
+            linear-gradient(120deg, #e9f6ed, #f7fbf8);
+    border: 1px solid #dceee1;
+    border-radius: var(--radius-lg);
+}
+
+.vet-welcome > div:first-child {
+    max-width: 680px;
+}
+
+.vet-eyebrow {
+    color: var(--primary);
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+
+.vet-welcome h2 {
+    margin: 12px 0;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.vet-welcome p {
+    line-height: 1.75;
+}
+
+.vet-welcome-icon {
+    width: 125px;
+    height: 125px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, .75);
+    border-radius: 32px;
+    font-size: 4rem;
+}
+
+.vet-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+}
+
+.vet-stat-card,
+.vet-panel {
+    min-width: 0;
+    padding: 23px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.vet-stat-icon {
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+    background: var(--primary-light);
+    border-radius: 12px;
+    font-size: 1.3rem;
+}
+
+.vet-stat-card p {
+    margin-bottom: 5px;
+    font-size: .88rem;
+}
+
+.vet-stat-card h3 {
+    margin-bottom: 9px;
+    font-size: 1.15rem;
+    overflow-wrap: anywhere;
+}
+
+.vet-stat-card > span:last-child {
+    color: var(--text-muted);
+    font-size: .8rem;
+    line-height: 1.6;
+}
+
+.vet-panel {
+    margin-top: 25px;
+}
+
+.vet-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.vet-section-heading h2 {
+    margin-bottom: 6px;
+    font-size: 1.15rem;
+}
+
+.vet-section-heading p {
+    margin: 0;
+    font-size: .85rem;
+}
+
+.vet-demo-tag {
+    display: inline-flex;
+    padding: 5px 10px;
+    color: #89580e;
+    background: #fff1d5;
+    border-radius: 999px;
+    font-size: .73rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.vet-empty {
+    padding: 32px 18px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.vet-empty-icon {
+    margin-bottom: 10px;
+    font-size: 2rem;
+}
+
+.vet-empty h3 {
+    margin-bottom: 7px;
+    font-size: 1rem;
+}
+
+.vet-empty p {
+    max-width: 480px;
+    margin: auto;
+    font-size: .85rem;
+    line-height: 1.7;
+}
+
+.vet-verification-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+}
+
+.vet-verification-icon {
+    font-size: 1.7rem;
+}
+
+.vet-verification-box strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.vet-verification-box p {
+    margin: 0;
+    font-size: .86rem;
+    line-height: 1.7;
+}
+
+.vet-note {
+    margin: 12px 0 0;
+    color: var(--text-muted);
+    font-size: .78rem;
+}
+
+.vet-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.vet-profile-grid > div {
+    padding: 15px;
+    background: var(--surface-muted);
+    border-radius: 10px;
+}
+
+.vet-profile-grid span,
+.vet-profile-grid strong {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.vet-profile-grid span {
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: .8rem;
+}
+
+.vet-profile-grid strong {
+    font-size: .9rem;
+}
+
+.vet-footer {
+    padding-top: 25px;
+    margin-top: 30px;
+    border-top: 1px solid var(--border);
+}
+
+.vet-footer p {
+    margin: 0;
+    font-size: .8rem;
+}
+
+@media (max-width: 1050px) {
+    .vet-stat-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .vet-sidebar {
+        position: static;
+        width: 100%;
+        min-height: auto;
+        padding: 18px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .vet-sidebar .brand {
+        margin-bottom: 18px;
+    }
+
+    .vet-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .vet-sidebar-bottom {
+        margin-top: 14px;
+    }
+
+    .vet-main {
+        margin-left: 0;
+    }
+
+    .vet-header {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .vet-content {
+        padding: 20px;
+    }
+
+    .vet-welcome {
+        padding: 23px;
+    }
+
+    .vet-welcome-icon {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .vet-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .vet-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vet-section-heading {
+        flex-direction: column;
+    }
+}

@@ -23,6 +23,7 @@ dependencies {
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.core)
     implementation("io.ktor:ktor-server-core-jvm:3.6.0")
+    implementation("io.ktor:ktor-server-cors-jvm:3.6.0")
     implementation(ktorLibs.server.netty)
 
     // Logging
@@ -45,6 +46,7 @@ dependencies {
 
     // JWT authentication
     implementation("io.ktor:ktor-server-auth-jwt-jvm:3.6.0")
+
 
     // Tests
     testImplementation(kotlin("test"))

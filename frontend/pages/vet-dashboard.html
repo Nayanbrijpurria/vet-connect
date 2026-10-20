@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veterinarian Dashboard | VetPlatform</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/vet-dashboard.css">
+</head>
+<body>
+<div class="vet-layout">
+
+    <aside class="vet-sidebar">
+        <a href="index.html" class="brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <p class="vet-menu-label">WORKSPACE</p>
+        <nav class="vet-nav">
+            <a class="vet-nav-link active" href="vet-dashboard.html">▦ &nbsp; Dashboard</a>
+            <a class="vet-nav-link" href="#appointments">▣ &nbsp; Appointments</a>
+            <a class="vet-nav-link" href="#verification">✓ &nbsp; Verification status</a>
+            <a class="vet-nav-link" href="#profile">♙ &nbsp; My profile</a>
+        </nav>
+
+        <div class="vet-sidebar-bottom">
+            <a class="vet-nav-link" href="index.html">← &nbsp; Back to website</a>
+            <button class="vet-nav-link vet-logout" id="vet-logout" type="button">
+                ⇥ &nbsp; Log out
+            </button>
+        </div>
+    </aside>
+
+    <main class="vet-main">
+        <header class="vet-header">
+            <div>
+                <p class="vet-breadcrumb">Workspace / Veterinarian</p>
+                <h1>Veterinarian Dashboard</h1>
+            </div>
+            <div class="vet-account">
+                <div class="vet-avatar">🩺</div>
+                <div>
+                    <strong id="vet-email">Veterinarian</strong>
+                    <span>Veterinarian account</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="vet-content">
+            <section class="vet-welcome">
+                <div>
+                    <span class="vet-eyebrow">YOUR CLINICAL WORKSPACE</span>
+                    <h2>Welcome to your workspace 👋</h2>
+                    <p>Manage your professional profile and prepare to organise your appointments with pet parents.</p>
+                    <a href="#verification" class="btn btn-primary">View verification status →</a>
+                </div>
+                <div class="vet-welcome-icon">🩺</div>
+            </section>
+
+            <section class="vet-stat-grid" aria-label="Dashboard summary">
+                <article class="vet-stat-card">
+                    <span class="vet-stat-icon">📅</span>
+                    <p>Appointments</p>
+                    <h3>Coming soon</h3>
+                    <span>Appointment management will be connected later.</span>
+                </article>
+
+                <article class="vet-stat-card">
+                    <span class="vet-stat-icon">🛡️</span>
+                    <p>Verification</p>
+                    <h3 id="vet-verification-short">Not connected</h3>
+                    <span>Your application status will be shown here once connected.</span>
+                </article>
+
+                <article class="vet-stat-card">
+                    <span class="vet-stat-icon">👤</span>
+                    <p>Professional profile</p>
+                    <h3>Profile setup</h3>
+                    <span>Your qualifications and practice details will be managed here.</span>
+                </article>
+            </section>
+
+            <section class="vet-panel" id="appointments">
+                <div class="vet-section-heading">
+                    <div>
+                        <h2>Appointments</h2>
+                        <p>Your appointment schedule will appear here.</p>
+                    </div>
+                    <span class="vet-demo-tag">Not connected yet</span>
+                </div>
+                <div class="vet-empty">
+                    <div class="vet-empty-icon">📅</div>
+                    <h3>Your schedule will appear here</h3>
+                    <p>We will connect this section to the appointment system after the dashboard interfaces are ready.</p>
+                </div>
+            </section>
+
+            <section class="vet-panel" id="verification">
+                <div class="vet-section-heading">
+                    <div>
+                        <h2>Professional verification</h2>
+                        <p>Verification helps establish trust with pet parents.</p>
+                    </div>
+                </div>
+                <div class="vet-verification-box">
+                    <span class="vet-verification-icon">🛡️</span>
+                    <div>
+                        <strong id="vet-verification-title">Status not loaded</strong>
+                        <p id="vet-verification-description">
+                            Your real verification status will be retrieved from the backend in a later step.
+                        </p>
+                    </div>
+                </div>
+                <p class="vet-note">
+                    This is currently a visual placeholder. It does not confirm that a veterinarian is verified.
+                </p>
+            </section>
+
+            <section class="vet-panel" id="profile">
+                <div class="vet-section-heading">
+                    <div>
+                        <h2>My professional profile</h2>
+                        <p>Your professional information will be displayed here.</p>
+                    </div>
+                    <span class="vet-demo-tag">Coming soon</span>
+                </div>
+                <div class="vet-profile-grid">
+                    <div>
+                        <span>Email address</span>
+                        <strong id="vet-profile-email">Not available</strong>
+                    </div>
+                    <div>
+                        <span>Account type</span>
+                        <strong>Veterinarian</strong>
+                    </div>
+                    <div>
+                        <span>Qualifications</span>
+                        <strong>Not connected yet</strong>
+                    </div>
+                    <div>
+                        <span>Registration number</span>
+                        <strong>Not connected yet</strong>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="vet-footer">
+                <p>VetPlatform · Veterinarian workspace</p>
+            </footer>
+        </div>
+    </main>
+</div>
+
+<script src="../js/vet-dashboard.js"></script>
+</body>
+</html>
