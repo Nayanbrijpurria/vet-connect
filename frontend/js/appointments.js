@@ -4,7 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const message = document.getElementById("appointment-message");
     const list = document.getElementById("appointment-list");
     const dateInput = document.getElementById("appointment-date");
+    // Read the selected pet's name from the URL.
+    const appointmentParams = new URLSearchParams(window.location.search);
+    const selectedPetName = appointmentParams.get("petName");
 
+    const petNameInput = document.getElementById("pet-name");
+
+    if (selectedPetName && petNameInput) {
+        petNameInput.value = selectedPetName;
+    }
     if (!form || !message || !list || !dateInput) return;
 
     // Do not allow dates in the past.

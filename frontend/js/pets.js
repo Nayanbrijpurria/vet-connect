@@ -58,6 +58,8 @@ document.addEventListener("DOMContentLoaded", function () {
         0
     ) + 1;
 
+    let editingPetId = null;
+
     function showMessage(message) {
         petMessage.textContent = message;
         petMessage.classList.remove("hidden");
@@ -82,6 +84,12 @@ document.addEventListener("DOMContentLoaded", function () {
     function closePetForm() {
         petFormSection.hidden = true;
         petForm.reset();
+        editingPetId = null;
+
+        const formTitle = document.getElementById("pet-form-title");
+        if (formTitle) {
+            formTitle.textContent = "Add a pet";
+        }
     }
 
     function getPetEmoji(species) {
@@ -108,6 +116,43 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function calculatePetAge(birthDate) {
+        if (!birthDate) return "Age not provided";
+
+        const birth = new Date(`${birthDate}T00:00:00`);
+        const today = new Date();
+
+        if (Number.isNaN(birth.getTime()) || birth > today) {
+            return "Age unavailable";
+        }
+
+        let years = today.getFullYear() - birth.getFullYear();
+        let months = today.getMonth() - birth.getMonth();
+
+        if (today.getDate() < birth.getDate()) {
+            months--;
+        }
+
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+
+        if (years === 0 && months === 0) {
+            return "Less than 1 month";
+        }
+
+        if (years === 0) {
+            return `${months} month${months === 1 ? "" : "s"} old`;
+        }
+
+        if (months === 0) {
+            return `${years} year${years === 1 ? "" : "s"} old`;
+        }
+
+        return `${years}y ${months}m old`;
     }
 
     function createDetail(label, value) {
@@ -160,7 +205,8 @@ document.addEventListener("DOMContentLoaded", function () {
             createDetail(
                 "Weight",
                 pet.weight ? `${pet.weight} kg` : "Not provided"
-            )
+            ),
+            createDetail("Age", calculatePetAge(pet.birthDate))
         );
 
         const actions = document.createElement("div");
@@ -172,41 +218,55 @@ document.addEventListener("DOMContentLoaded", function () {
             `medical-records.html?petId=${encodeURIComponent(pet.id)}`;
         recordsLink.textContent = "Medical records";
 
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "btn btn-outline";
+        editButton.textContent = "Edit";
+
+        editButton.addEventListener("click", function () {
+            editingPetId = pet.id;
+
+            document.getElementById("pet-form-title").textContent = "Edit pet";
+            petForm.elements.name.value = pet.name;
+            petForm.elements.species.value = pet.species;
+            petForm.elements.breed.value = pet.breed || "";
+            petForm.elements.gender.value = pet.gender || "";
+            petForm.elements.birthDate.value = pet.birthDate || "";
+            petForm.elements.weight.value = pet.weight || "";
+            petForm.elements.notes.value = pet.notes || "";
+
+            openPetForm();
+        });
+
+        const appointmentLink = document.createElement("a");
+        appointmentLink.className = "btn btn-secondary";
+        appointmentLink.href =
+            `appointments.html?petName=${encodeURIComponent(pet.name)}`;
+        appointmentLink.textContent = "Book appointment";
+
         const removeButton = document.createElement("button");
         removeButton.type = "button";
         removeButton.className = "btn btn-outline";
         removeButton.textContent = "Remove";
-        removeButton.setAttribute(
-            "aria-label",
-            `Remove ${pet.name} from this temporary list`
-        );
 
         removeButton.addEventListener("click", function () {
-            const confirmed = window.confirm(
-                `Remove ${pet.name} from this temporary list?`
-            );
+            const confirmed = window.confirm(`Remove ${pet.name}?`);
+            if (!confirmed) return;
 
-            if (!confirmed) {
-                return;
-            }
-
-            const previousPets = pets;
-
-            pets = pets.filter(function (item) {
-                return item.id !== pet.id;
-            });
+            const previousPets = [...pets];
+            pets = pets.filter(item => item.id !== pet.id);
 
             if (!savePets()) {
                 pets = previousPets;
-                showMessage("Could not remove the pet. Browser storage may be full.");
+                showMessage("Could not remove the pet. Please check browser storage.");
                 return;
             }
 
             renderPets();
-            showMessage(`${pet.name} was removed from your saved demo list.`);
+            showMessage(`${pet.name} was removed.`);
         });
 
-        actions.append(recordsLink, removeButton);
+        actions.append(recordsLink, editButton, appointmentLink, removeButton);
         body.append(actions);
         card.append(top, body);
 
@@ -220,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return (
                 pet.name.toLowerCase().includes(searchTerm) ||
                 pet.species.toLowerCase().includes(searchTerm) ||
-                pet.breed.toLowerCase().includes(searchTerm)
+                (pet.breed || "").toLowerCase().includes(searchTerm)
             );
         });
 
@@ -305,8 +365,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        const pet = {
-            id: nextId++,
+        const petData = {
             name,
             species,
             breed,
@@ -315,23 +374,40 @@ document.addEventListener("DOMContentLoaded", function () {
             weight,
             notes
         };
+        const previousPets = pets.map(pet => ({...pet}));
+        const wasEditing = editingPetId !== null;
 
-        pets.push(pet);
+        if (wasEditing) {
+            pets = pets.map(item =>
+                item.id === editingPetId
+                    ? {...item, ...petData}
+                    : item
+            );
+        } else {
+            pets.push({
+                id: nextId++,
+                ...petData
+            });
+        }
 
         if (!savePets()) {
-            pets.pop();
-            showMessage(
-                "Could not save this pet. Please check your browser storage."
-            );
+            pets = previousPets;
+            showMessage("Could not save the pet. Please check browser storage.");
             return;
         }
 
+        editingPetId = null;
         closePetForm();
+
+        document.getElementById("pet-form-title").textContent = "Add a pet";
+
         petSearch.value = "";
         renderPets();
 
         showMessage(
-            `${name} was added successfully and saved in this browser.`
+            wasEditing
+                ? `${name}'s profile was updated successfully.`
+                : `${name} was added successfully and saved in this browser.`
         );
 
         window.scrollTo({
@@ -340,28 +416,22 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    if (sidebar && sidebarToggle) {
-        sidebarToggle.addEventListener("click", function () {
-            const isOpen = sidebar.classList.toggle("open");
+    sidebarToggle.addEventListener("click", function () {
+        const isOpen = sidebar.classList.toggle("open");
+        sidebarToggle.setAttribute("aria-expanded", String(isOpen));
+    });
 
-            sidebarToggle.setAttribute(
-                "aria-expanded",
-                String(isOpen)
-            );
-        });
-
-        document.addEventListener("click", function (event) {
-            if (
-                window.innerWidth <= 850 &&
-                sidebar.classList.contains("open") &&
-                !sidebar.contains(event.target) &&
-                !sidebarToggle.contains(event.target)
-            ) {
-                sidebar.classList.remove("open");
-                sidebarToggle.setAttribute("aria-expanded", "false");
-            }
-        });
-    }
+    document.addEventListener("click", function (event) {
+        if (
+            window.innerWidth <= 850 &&
+            sidebar.classList.contains("open") &&
+            !sidebar.contains(event.target) &&
+            !sidebarToggle.contains(event.target)
+        ) {
+            sidebar.classList.remove("open");
+            sidebarToggle.setAttribute("aria-expanded", "false");
+        }
+    });
 
     renderPets();
 });
