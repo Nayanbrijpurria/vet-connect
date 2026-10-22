@@ -18,69 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    // Demonstration data only. These are not real or verified veterinarians.
-    const veterinarians = [
-        {
-            id: "demo-101",
-            name: "Dr. Aditi Sharma",
-            specialization: "General Practice",
-            experience: 6,
-            fee: 500,
-            rating: 4.8,
-            reviewCount: 42,
-            avatar: "👩‍⚕️"
-        },
-        {
-            id: "demo-102",
-            name: "Dr. Rahul Mehta",
-            specialization: "Dermatology",
-            experience: 8,
-            fee: 700,
-            rating: 4.7,
-            reviewCount: 35,
-            avatar: "👨‍⚕️"
-        },
-        {
-            id: "demo-103",
-            name: "Dr. Neha Verma",
-            specialization: "Surgery",
-            experience: 10,
-            fee: 900,
-            rating: 4.9,
-            reviewCount: 58,
-            avatar: "👩‍⚕️"
-        },
-        {
-            id: "demo-104",
-            name: "Dr. Arjun Patel",
-            specialization: "Dentistry",
-            experience: 5,
-            fee: 600,
-            rating: 4.6,
-            reviewCount: 27,
-            avatar: "👨‍⚕️"
-        },
-        {
-            id: "demo-105",
-            name: "Dr. Priya Nair",
-            specialization: "General Practice",
-            experience: 7,
-            fee: 550,
-            rating: 4.8,
-            reviewCount: 46,
-            avatar: "👩‍⚕️"
-        },
-        {
-            id: "demo-106",
-            name: "Dr. Karan Singh",
-            specialization: "Dermatology",
-            experience: 4,
-            fee: 650,
-            rating: 4.5,
-            reviewCount: 19,
-            avatar: "👨‍⚕️"
-        }
-    ];
+    let veterinarians = [];
 
     function createElement(tag, className, text) {
         const element = document.createElement(tag);
@@ -89,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
             element.className = className;
         }
 
-        if (text !== undefined) {
+        if (text !== undefined && text !== null) {
             element.textContent = text;
         }
 
@@ -98,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function createDetail(label, value) {
         const wrapper = createElement("div", "vet-detail");
+
         wrapper.append(
             createElement("span", "vet-detail-label", label),
             createElement("span", "vet-detail-value", value)
@@ -108,74 +47,55 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function createVeterinarianCard(vet) {
         const card = createElement("article", "vet-card");
-
         const top = createElement("div", "vet-card-top");
-        const avatar = createElement("div", "vet-avatar", vet.avatar);
+
+        const avatar = createElement("div", "vet-avatar", "🩺");
         avatar.setAttribute("aria-hidden", "true");
 
         const heading = createElement("div", "vet-card-heading");
+
         heading.append(
-            createElement("h3", "", vet.name),
-            createElement("span", "vet-specialization", vet.specialization),
-            createElement("span", "vet-demo-label", "DEMO PROFILE")
+            createElement("h3", "", vet.fullName),
+            createElement("span", "vet-specialization", vet.qualification),
+            createElement("span", "vet-demo-label", "APPROVED VETERINARIAN")
         );
 
         top.append(avatar, heading);
 
         const details = createElement("div", "vet-card-details");
+
         details.append(
             createDetail(
                 "Experience",
-                `${vet.experience} years (sample)`
+                `${vet.experienceYears} ${
+                    vet.experienceYears === 1 ? "year" : "years"
+                }`
             ),
             createDetail(
                 "Consultation fee",
-                `₹${vet.fee} (sample)`
-            )
+                `₹${Number(vet.consultationFee).toLocaleString("en-IN")}`
+            ),
+            createDetail("Profile status", "Approved")
         );
-
-        const ratingDetail = createElement("div", "vet-detail");
-        ratingDetail.append(
-            createElement("span", "vet-detail-label", "Sample rating")
-        );
-
-        const rating = createElement(
-            "span",
-            "vet-rating",
-            `★ ${vet.rating.toFixed(1)} `
-        );
-
-        rating.append(
-            createElement(
-                "span",
-                "vet-rating-note",
-                `(${vet.reviewCount} sample reviews)`
-            )
-        );
-
-        ratingDetail.append(rating);
-
-        const availabilityDetail = createDetail(
-            "Profile status",
-            "Demonstration only"
-        );
-
-        details.append(ratingDetail, availabilityDetail);
 
         const footer = createElement("div", "vet-card-footer");
 
-        const price = createElement("div", "vet-demo-price", `₹${vet.fee}`);
-        price.append(
-            createElement("small", "", "Sample fee · Not a real quote")
+        const price = createElement(
+            "div",
+            "vet-demo-price",
+            `₹${Number(vet.consultationFee).toLocaleString("en-IN")}`
         );
 
-        const profileLink = createElement("a", "btn btn-primary", "View profile →");
-        profileLink.href =
-            `veterinarian-profile.html?id=${encodeURIComponent(vet.id)}`;
-        profileLink.setAttribute(
-            "aria-label",
-            `View demo profile for ${vet.name}`
+        price.append(createElement("small", "", "Consultation fee"));
+
+        const profileLink = createElement(
+            "a",
+            "btn btn-primary",
+            "View profile →"
         );
+
+        profileLink.href =
+            `veterinarian-profile.html?id=${encodeURIComponent(vet.userId)}`;
 
         footer.append(price, profileLink);
         card.append(top, details, footer);
@@ -185,35 +105,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderVeterinarians() {
         const searchTerm = searchInput.value.trim().toLowerCase();
-        const selectedSpecialization = specializationSelect.value;
+        const selectedQualification = specializationSelect.value;
 
-        const filteredVeterinarians = veterinarians.filter(function (vet) {
-            const matchesSearch =
-                vet.name.toLowerCase().includes(searchTerm) ||
-                vet.specialization.toLowerCase().includes(searchTerm);
+        const filtered = veterinarians.filter(function (vet) {
+            const searchableText =
+                `${vet.fullName} ${vet.qualification}`.toLowerCase();
 
-            const matchesSpecialization =
-                selectedSpecialization === "all" ||
-                vet.specialization === selectedSpecialization;
+            const matchesSearch = searchableText.includes(searchTerm);
 
-            return matchesSearch && matchesSpecialization;
+            const matchesQualification =
+                selectedQualification === "all" ||
+                vet.qualification === selectedQualification;
+
+            return matchesSearch && matchesQualification;
         });
 
         veterinarianList.replaceChildren();
 
         resultsSummary.textContent =
-            `${filteredVeterinarians.length} sample profile` +
-            `${filteredVeterinarians.length === 1 ? "" : "s"} found`;
+            `${filtered.length} approved veterinarian${
+                filtered.length === 1 ? "" : "s"
+            } found`;
 
-        if (filteredVeterinarians.length === 0) {
+        if (filtered.length === 0) {
             const empty = createElement("div", "vet-empty-state");
 
             empty.append(
-                createElement("h3", "", "No matching veterinarians"),
+                createElement("h3", "", "No veterinarians found"),
                 createElement(
                     "p",
                     "",
-                    "Try another name or specialization, or reset your filters."
+                    veterinarians.length === 0
+                        ? "No approved veterinarian profiles are available yet."
+                        : "Try another search or reset your filters."
                 )
             );
 
@@ -221,9 +145,99 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        filteredVeterinarians.forEach(function (vet) {
+        filtered.forEach(function (vet) {
             veterinarianList.append(createVeterinarianCard(vet));
         });
+    }
+
+    function populateQualificationFilter() {
+        const currentValue = specializationSelect.value;
+
+        specializationSelect.replaceChildren();
+
+        specializationSelect.append(
+            new Option("All qualifications", "all")
+        );
+
+        const qualifications = [
+            ...new Set(
+                veterinarians
+                    .map(vet => vet.qualification)
+                    .filter(Boolean)
+            )
+        ].sort((a, b) => a.localeCompare(b));
+
+        qualifications.forEach(function (qualification) {
+            specializationSelect.append(
+                new Option(qualification, qualification)
+            );
+        });
+
+        specializationSelect.value =
+            qualifications.includes(currentValue) ? currentValue : "all";
+    }
+
+    async function loadVeterinarians() {
+        veterinarianList.replaceChildren();
+
+        veterinarianList.append(
+            createElement(
+                "p",
+                "vet-loading",
+                "Loading approved veterinarians..."
+            )
+        );
+
+        resultsSummary.textContent = "Loading veterinarian directory...";
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/vets/approved`
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Unable to load veterinarians (HTTP ${response.status}).`
+                );
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data)) {
+                throw new Error("The server returned an unexpected response.");
+            }
+
+            veterinarians = data.filter(function (vet) {
+                return (
+                    Number.isInteger(vet.userId) &&
+                    typeof vet.fullName === "string" &&
+                    typeof vet.qualification === "string" &&
+                    Number.isFinite(Number(vet.experienceYears)) &&
+                    Number.isFinite(Number(vet.consultationFee))
+                );
+            });
+
+            populateQualificationFilter();
+            renderVeterinarians();
+        } catch (error) {
+            console.error("Failed to load veterinarian directory:", error);
+
+            veterinarianList.replaceChildren();
+
+            const errorState = createElement("div", "vet-empty-state");
+
+            errorState.append(
+                createElement("h3", "", "Unable to load veterinarians"),
+                createElement(
+                    "p",
+                    "",
+                    "The veterinarian directory could not be loaded. Please try again later."
+                )
+            );
+
+            veterinarianList.append(errorState);
+            resultsSummary.textContent = "Veterinarian directory unavailable";
+        }
     }
 
     searchInput.addEventListener("input", renderVeterinarians);
@@ -255,5 +269,5 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    renderVeterinarians();
+    loadVeterinarians();
 });

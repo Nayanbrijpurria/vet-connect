@@ -158,4 +158,45 @@ object VetRepository {
             }
         }
 
+    suspend fun getApprovedVets(): List<ApprovedVetResponse> =
+        withContext(Dispatchers.IO) {
+            val sql = """
+            SELECT
+                u.id AS user_id,
+                u.full_name,
+                vp.qualification,
+                vp.experience_years,
+                vp.consultation_fee
+            FROM users u
+            JOIN vet_profiles vp ON vp.user_id = u.id
+            WHERE u.role = 'VET'
+              AND vp.verification_status = 'APPROVED'
+            ORDER BY u.full_name ASC
+        """.trimIndent()
+
+            DatabaseFactory.withConnection { connection ->
+                connection.prepareStatement(sql).use { statement ->
+                    statement.executeQuery().use { result ->
+                        buildList {
+
+                            while (result.next()) {
+                                add(
+                                    ApprovedVetResponse(
+                                        userId = result.getLong("user_id"),
+                                        fullName = result.getString("full_name"),
+                                        qualification = result.getString("qualification"),
+                                        experienceYears = result.getInt("experience_years"),
+                                        consultationFee = result.getBigDecimal(
+                                            "consultation_fee"
+                                        ).toDouble()
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
 }

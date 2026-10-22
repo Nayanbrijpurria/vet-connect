@@ -33,3 +33,18 @@ data class AppointmentListResponse(
 data class AppointmentActionRequest(
     val action: String
 )
+
+
+@Serializable
+data class AvailableAppointmentSlot(
+    val start: String,
+    val end: String
+)
+
+@Serializable
+data class AvailableAppointmentSlotsResponse(
+    val vetUserId: Long,
+    val date: String,
+    val timezone: String,
+    val slots: List<AvailableAppointmentSlot>
+)

@@ -78,46 +78,48 @@
                     </div>
                 </div>
 
-                <form id="appointment-form" class="appointment-form">
-                    <label for="pet-name">Pet name</label>
-                    <input id="pet-name" name="petName" type="text"
-                           placeholder="e.g. Bruno" required>
 
-                    <label for="consultation-type">Consultation type</label>
-                    <select id="consultation-type" name="consultationType" required>
-                        <option value="">Select consultation type</option>
-                        <option value="clinic">Clinic visit</option>
-                        <option value="online">Online consultation</option>
-                        <option value="follow-up">Follow-up consultation</option>
+                <form id="appointment-form" class="appointment-form">
+                    <label for="pet-name">Select your pet</label>
+                    <select id="pet-name" name="petId" required>
+                        <option value="">Loading your pets…</option>
+                    </select>
+
+                    <label for="veterinarian-id">Select veterinarian</label>
+                    <select id="veterinarian-id" name="vetUserId" required>
+                        <option value="">Veterinarian list will load here</option>
                     </select>
 
                     <label for="appointment-date">Preferred date</label>
-                    <input id="appointment-date" name="appointmentDate"
-                           type="date" required>
+                    <input
+                            id="appointment-date"
+                            name="appointmentDate"
+                            type="date"
+                            required
+                    >
 
-                    <label for="appointment-time">Preferred time</label>
-                    <select id="appointment-time" name="appointmentTime" required>
-                        <option value="">Choose a time</option>
-                        <option>09:00 AM</option>
-                        <option>10:00 AM</option>
-                        <option>11:00 AM</option>
-                        <option>12:00 PM</option>
-                        <option>02:00 PM</option>
-                        <option>03:00 PM</option>
-                        <option>04:00 PM</option>
+
+                    <label for="appointment-time">Available appointment time</label>
+                    <select id="appointment-time" name="appointmentTime" required disabled>
+                        <option value="">Select a veterinarian and date first</option>
                     </select>
 
                     <label for="reason">Reason for consultation</label>
-                    <textarea id="reason" name="reason" rows="4"
-                              placeholder="Describe your pet's concern"
-                              required></textarea>
+                    <textarea
+                            id="reason"
+                            name="reason"
+                            rows="4"
+                            placeholder="Describe your pet's concern"
+                            required
+                    ></textarea>
 
                     <button type="submit" class="btn btn-primary">
-                        Submit appointment request
+                        Book appointment
                     </button>
-                    <p id="appointment-message" role="status"
-                       aria-live="polite"></p>
+
+                    <p id="appointment-message" role="status" aria-live="polite"></p>
                 </form>
+
             </section>
 
             <section class="content-section panel">

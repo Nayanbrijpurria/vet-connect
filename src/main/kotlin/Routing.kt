@@ -355,6 +355,73 @@ fun Route.configureRouting() {
         }
     }
 
+    // Public list of approved veterinarians.
+    // Customers can browse veterinarians without logging in.
+    get("/api/vets/approved") {
+        try {
+            val veterinarians = VetRepository.getApprovedVets()
+            call.respond(HttpStatusCode.OK, veterinarians)
+        } catch (exception: Exception) {
+            application.log.error(
+                "Failed to retrieve approved veterinarians",
+                exception
+            )
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to "Unable to retrieve approved veterinarians")
+            )
+        }
+    }
+
+
+    // Public endpoint: retrieve available appointment slots for a vet and date.
+    get("/api/vets/{vetUserId}/available-slots") {
+        try {
+            val vetUserId = call.parameters["vetUserId"]
+                ?.toLongOrNull()
+                ?: throw IllegalArgumentException(
+                    "A valid veterinarian ID is required"
+                )
+
+            val dateText = call.request.queryParameters["date"]
+                ?: throw IllegalArgumentException(
+                    "A date is required in YYYY-MM-DD format"
+                )
+
+            val date = try {
+                java.time.LocalDate.parse(dateText)
+            } catch (exception: Exception) {
+                throw IllegalArgumentException(
+                    "Date must use YYYY-MM-DD format"
+                )
+            }
+
+            val result =
+                AppointmentAvailabilityRepository.getAvailableSlots(
+                    vetUserId = vetUserId,
+                    date = date
+                )
+
+            call.respond(HttpStatusCode.OK, result)
+        } catch (exception: IllegalArgumentException) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to (exception.message ?: "Invalid request"))
+            )
+        } catch (exception: Exception) {
+            application.log.error(
+                "Failed to retrieve appointment availability",
+                exception
+            )
+
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("error" to "Unable to retrieve available slots")
+            )
+        }
+    }
+
+
     //---------Authentication---------------
 
 

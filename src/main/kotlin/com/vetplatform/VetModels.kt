@@ -30,3 +30,14 @@ data class VetVerificationStatusResponse(
     val registrationNumber: String,
     val verificationStatus: String
 )
+
+
+@kotlinx.serialization.Serializable
+data class ApprovedVetResponse(
+    val userId: Long,
+    val fullName: String,
+    val qualification: String,
+    val experienceYears: Int,
+    val consultationFee: Double
+)
+
