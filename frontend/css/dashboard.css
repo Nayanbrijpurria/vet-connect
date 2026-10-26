@@ -926,7 +926,7 @@ css
     height: 44px;
     border: 1px solid var(--border-color, #e5e7eb);
     border-radius: 12px;
-    background: var(--card-background, #ffffff);
+    background: var(--button-background, #ffffff);
     cursor: pointer;
     font-size: 19px;
 }
@@ -1108,3 +1108,296 @@ css
         width: 360px;
     }
 }
+
+
+/* Medical records preview on customer dashboard */
+.record-entry {
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background-color: #ffffff;
+}
+
+.record-entry h3 {
+    margin: 0 0 10px;
+    color: #1f2937;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+}
+
+.record-entry p {
+    margin: 6px 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+#dashboard-records .empty-state {
+    margin-bottom: 14px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+
+/* Medical document type badge */
+.record-type-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 4px 0 10px;
+    border-radius: 20px;
+    background-color: #e8f3ff;
+    color: #245a8d;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+
+/* Medical document processing status */
+.record-processing-status {
+    display: inline-block;
+    width: fit-content;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Document processing is complete */
+.record-processing-status[data-status="completed"] {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+/* Document is still being processed */
+.record-processing-status[data-status="processing"] {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+/* Document is waiting to be processed */
+.record-processing-status[data-status="pending"] {
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+/* Document processing failed */
+.record-processing-status[data-status="failed"] {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+
+/* Appointment status labels */
+.appointment-status {
+    display: inline-block;
+    width: fit-content;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Confirmed appointments */
+.appointment-status[data-status="confirmed"] {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+/* Pending appointments */
+.appointment-status[data-status="pending"] {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+/* Cancelled appointments */
+.appointment-status[data-status="cancelled"] {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Completed appointments */
+.appointment-status[data-status="completed"] {
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+/* Unknown or other statuses */
+.appointment-status[data-status="unknown"] {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+
+/* Pet card species */
+.pet-card-species {
+    display: inline-block;
+    margin: 6px 0;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+/* Pet card breed */
+.pet-card-breed {
+    margin: 4px 0 12px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+
+/* Responsive refinements for phones and small tablets */
+@media (max-width: 560px) {
+    .dashboard-header {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .header-left {
+        min-width: 0;
+        flex: 1;
+        gap: 9px;
+    }
+
+    .page-title {
+        overflow-wrap: anywhere;
+    }
+
+    .header-actions {
+        gap: 8px;
+    }
+
+    .notification-button,
+    .menu-toggle {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+    }
+
+    .welcome-banner {
+        gap: 12px;
+        overflow-wrap: anywhere;
+    }
+
+    .stats-grid,
+    .pet-grid,
+    .dashboard-columns {
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stat-card,
+    .panel,
+    .pet-card,
+    .appointment-entry,
+    .record-entry {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .section-header {
+        flex-wrap: wrap;
+    }
+
+    .notification-panel {
+        right: 8px;
+        width: auto;
+        max-width: calc(100vw - 16px);
+    }
+}
+
+
+/* Tablet layout refinements */
+@media (min-width: 561px) and (max-width: 850px) {
+    .dashboard-body {
+        padding: 24px 20px;
+    }
+
+    .dashboard-header {
+        padding: 14px 20px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .pet-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .welcome-banner {
+        padding: 26px;
+        gap: 18px;
+    }
+
+    .welcome-decoration {
+        width: 95px;
+        height: 95px;
+        font-size: 3rem;
+    }
+}
+
+
+/* Wide-screen dashboard refinements */
+@media (min-width: 1200px) {
+    .dashboard-body {
+        padding-right: clamp(28px, 3vw, 45px);
+        padding-left: clamp(28px, 3vw, 45px);
+    }
+
+    .stats-grid {
+        gap: 20px;
+    }
+
+    .dashboard-columns {
+        gap: 24px;
+    }
+
+    .panel {
+        min-width: 0;
+    }
+
+    .record-entry,
+    .appointment-entry {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+
+/* Keep notifications usable on short mobile screens */
+@media (max-width: 600px) {
+    .notification-panel {
+        max-height: calc(100dvh - 96px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .notification-list {
+        max-height: min(350px, 45dvh);
+        overflow-y: auto;
+    }
+
+    .notification-panel-header,
+    .notification-item,
+    .notification-panel-footer {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .notification-mark-read {
+        white-space: normal;
+        text-align: right;
+    }
+}
+
+
+

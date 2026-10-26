@@ -23,6 +23,32 @@
         </nav>
 
 
+        <button
+                class="mobile-menu-toggle"
+                id="mobile-menu-toggle"
+                type="button"
+                aria-label="Open navigation menu"
+                aria-expanded="false"
+                aria-controls="mobile-navigation"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+
+        <nav
+                class="mobile-navigation"
+                id="mobile-navigation"
+                aria-label="Mobile navigation"
+                hidden
+        >
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="login.html">Log in</a>
+            <a href="register.html">Get started</a>
+        </nav>
+
 
         <div class="nav-actions">
             <a href="login.html" class="btn btn-outline">Log in</a>
@@ -181,10 +207,40 @@
     </div>
 </footer>
 
+
 <script>
+    // Update the copyright year automatically.
     document.getElementById("current-year").textContent =
         new Date().getFullYear();
-</script>
 
+    // Mobile navigation menu.
+    const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
+    const mobileNavigation = document.getElementById("mobile-navigation");
+
+    mobileMenuToggle.addEventListener("click", function () {
+        const isExpanded =
+            mobileMenuToggle.getAttribute("aria-expanded") === "true";
+
+        mobileMenuToggle.setAttribute("aria-expanded", String(!isExpanded));
+        mobileMenuToggle.setAttribute(
+            "aria-label",
+            isExpanded ? "Open navigation menu" : "Close navigation menu"
+        );
+
+        mobileNavigation.hidden = isExpanded;
+    });
+
+    // Close the menu after a navigation link is selected.
+    mobileNavigation.querySelectorAll("a").forEach(function (link) {
+        link.addEventListener("click", function () {
+            mobileNavigation.hidden = true;
+            mobileMenuToggle.setAttribute("aria-expanded", "false");
+            mobileMenuToggle.setAttribute(
+                "aria-label",
+                "Open navigation menu"
+            );
+        });
+    });
+</script>
 </body>
 </html>
