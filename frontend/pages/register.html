@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Join VetPlatform as a pet parent or veterinarian.">
+    <title>Create an Account | VetPlatform</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .registration-section {
+            min-height: 75vh;
+            padding: 64px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .registration-content {
+            width: 100%;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .registration-heading {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .registration-heading h1 {
+            margin-bottom: 12px;
+        }
+
+        .registration-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+        }
+
+        .registration-card {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .registration-icon {
+            font-size: 42px;
+        }
+
+        .registration-card p {
+            flex-grow: 1;
+        }
+
+        .registration-card .btn {
+            text-align: center;
+        }
+
+        .registration-footer {
+            text-align: center;
+            margin-top: 28px;
+        }
+
+        @media (max-width: 640px) {
+            .registration-options {
+                grid-template-columns: 1fr;
+            }
+
+            .registration-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+<header class="site-header">
+    <div class="container site-nav">
+        <a href="index.html" class="brand" aria-label="VetPlatform home">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <div class="nav-actions">
+            <a href="login.html" class="btn btn-outline">Log in</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="registration-section">
+        <div class="registration-content">
+            <div class="registration-heading">
+                <span class="eyebrow">Welcome to VetPlatform</span>
+                <h1>Create your account</h1>
+                <p>Choose the account type that best describes you.</p>
+            </div>
+
+            <div class="registration-options">
+                <article class="card registration-card">
+                    <div class="registration-icon" aria-hidden="true">🐾</div>
+                    <h2>I'm a pet parent</h2>
+                    <p>
+                        Create an account to manage your pets, organize
+                        medical records, and keep track of veterinary
+                        appointments.
+                    </p>
+                    <a href="customer-register.html" class="btn btn-primary">
+                        Create customer account →
+                    </a>
+                </article>
+
+                <article class="card registration-card">
+                    <div class="registration-icon" aria-hidden="true">🩺</div>
+                    <h2>I'm a veterinarian</h2>
+                    <p>
+                        Register as a veterinarian to apply to join
+                        VetPlatform. Your professional profile will need
+                        administrator approval.
+                    </p>
+                    <a href="vet-register.html" class="btn btn-primary">
+                        Register as a veterinarian →
+                    </a>
+                </article>
+            </div>
+
+            <div class="registration-footer">
+                <p>Already have an account? <a href="login.html">Log in</a></p>
+                <p><a href="index.html">← Back to home</a></p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-content">
+        <a href="index.html" class="brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+        <p>© <span id="current-year">2026</span> VetPlatform. Built for better pet care.</p>
+    </div>
+</footer>
+
+<script>
+    document.getElementById("current-year").textContent =
+        new Date().getFullYear();
+</script>
+</body>
+</html>

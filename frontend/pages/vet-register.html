@@ -1,0 +1,246 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Apply to join VetPlatform as a veterinarian.">
+    <title>Veterinarian Registration | VetPlatform</title>
+    <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        .registration-section {
+            min-height: 75vh;
+            padding: 48px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .registration-content {
+            width: 100%;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        .registration-heading {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .registration-form {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .registration-form label {
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .registration-form input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font: inherit;
+        }
+
+        .registration-note {
+            padding: 14px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            line-height: 1.6;
+        }
+
+        .registration-form button {
+            margin-top: 16px;
+        }
+
+        #vet-registration-message {
+            min-height: 24px;
+            overflow-wrap: anywhere;
+        }
+
+        .registration-footer {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 480px) {
+            .registration-form {
+                padding: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header class="site-header">
+    <div class="container site-nav">
+        <a href="index.html" class="brand" aria-label="VetPlatform home">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+
+        <div class="nav-actions">
+            <a href="login.html" class="btn btn-outline">Log in</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="registration-section">
+        <div class="registration-content">
+
+            <div class="registration-heading">
+                <span class="eyebrow">Professional registration</span>
+                <h1>Join VetPlatform as a veterinarian</h1>
+                <p>Enter your details to submit your professional application.</p>
+            </div>
+
+            <div class="registration-note">
+                <strong>Verification required</strong>
+                <p>
+                    Your application will remain pending until an administrator
+                    reviews it. Submitting this form does not mean your
+                    veterinarian account has been approved.
+                </p>
+            </div>
+
+            <form id="vet-registration-form"
+                  class="card registration-form">
+
+                <label for="fullName">Full name *</label>
+                <input
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        autocomplete="name"
+                        maxlength="150"
+                        placeholder="Enter your full name"
+                        required>
+
+                <label for="email">Professional email address *</label>
+                <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="email"
+                        maxlength="255"
+                        placeholder="you@example.com"
+                        required>
+
+                <label for="phone">Phone number (optional)</label>
+                <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        autocomplete="tel"
+                        maxlength="20"
+                        placeholder="Enter your phone number">
+
+                <label for="qualification">Professional qualification *</label>
+                <input
+                        type="text"
+                        id="qualification"
+                        name="qualification"
+                        maxlength="150"
+                        placeholder="e.g. BVSc & AH"
+                        required>
+
+                <label for="registrationNumber">
+                    Veterinary registration number *
+                </label>
+                <input
+                        type="text"
+                        id="registrationNumber"
+                        name="registrationNumber"
+                        maxlength="100"
+                        placeholder="Enter your registration number"
+                        required>
+
+                <label for="experienceYears">Years of experience *</label>
+                <input
+                        type="number"
+                        id="experienceYears"
+                        name="experienceYears"
+                        min="0"
+                        max="70"
+                        step="1"
+                        placeholder="e.g. 3"
+                        required>
+
+                <label for="consultationFee">
+                    Consultation fee *
+                </label>
+                <input
+                        type="number"
+                        id="consultationFee"
+                        name="consultationFee"
+                        min="0"
+                        max="1000000"
+                        step="0.01"
+                        placeholder="Enter your fee"
+                        required>
+
+                <label for="password">Password *</label>
+                <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="72"
+                        placeholder="At least 8 characters"
+                        required>
+
+                <label for="confirmPassword">Confirm password *</label>
+                <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="72"
+                        placeholder="Enter your password again"
+                        required>
+
+                <button type="submit" class="btn btn-primary">
+                    Submit application →
+                </button>
+
+                <p id="vet-registration-message"
+                   role="status"
+                   aria-live="polite"></p>
+            </form>
+
+            <div class="registration-footer">
+                <p>Already have an account? <a href="login.html">Log in</a></p>
+                <p><a href="register.html">← Back to account types</a></p>
+            </div>
+
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-content">
+        <a href="index.html" class="brand">
+            <span class="brand-mark">✚</span>
+            <span>VetPlatform</span>
+        </a>
+        <p>© <span id="current-year">2026</span> VetPlatform. Built for better pet care.</p>
+    </div>
+</footer>
+
+<script>
+    document.getElementById("current-year").textContent =
+        new Date().getFullYear();
+</script>
+
+<script src="../js/config.js"></script>
+<script src="../js/vet-register.js"></script>
+</body>
+</html>

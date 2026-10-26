@@ -20,13 +20,18 @@ fun Application.module() {
 }
 
 fun Application.configureApplication() {
+
     install(CORS) {
+        allowHost("localhost:63342", schemes = listOf("http"))
+        allowHost("127.0.0.1:63342", schemes = listOf("http"))
+
         allowHost("localhost:5500", schemes = listOf("http"))
         allowHost("127.0.0.1:5500", schemes = listOf("http"))
 
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Patch)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Options)
 

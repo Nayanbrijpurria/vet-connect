@@ -52,3 +52,12 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
 }
+
+
+tasks.register<JavaExec>("createAdmin") {
+    group = "application"
+    description = "Creates one local administrator account."
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.vetplatform.CreateAdminKt")
+}
