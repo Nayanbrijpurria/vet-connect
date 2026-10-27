@@ -62,15 +62,43 @@
             margin-top: 28px;
         }
 
+
         @media (max-width: 640px) {
+            .registration-section {
+                min-height: auto;
+                padding: 40px 14px;
+            }
+
+            .registration-heading {
+                margin-bottom: 26px;
+            }
+
+            .registration-heading h1 {
+                font-size: clamp(1.7rem, 7vw, 2.2rem);
+                overflow-wrap: anywhere;
+            }
+
             .registration-options {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 18px;
             }
 
             .registration-card {
-                padding: 24px;
+                min-width: 0;
+                padding: 22px 18px;
+                overflow-wrap: anywhere;
+            }
+
+            .registration-card .btn {
+                width: 100%;
+                white-space: normal;
+            }
+
+            .registration-footer p {
+                line-height: 1.7;
             }
         }
+
     </style>
 </head>
 <body>

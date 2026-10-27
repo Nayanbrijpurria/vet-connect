@@ -429,3 +429,111 @@
     cursor: not-allowed;
 }
 
+
+/* Additional responsive refinements for the admin dashboard */
+.admin-main,
+.admin-content,
+.admin-header,
+.admin-welcome,
+.admin-panel,
+.admin-stat-card {
+    min-width: 0;
+}
+
+.admin-content {
+    overflow-wrap: anywhere;
+}
+
+.admin-account {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.admin-account strong,
+.admin-account span {
+    overflow-wrap: anywhere;
+}
+
+.admin-section-heading > div {
+    min-width: 0;
+}
+
+.admin-demo-tag {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.admin-welcome h2,
+.admin-stat-card h3 {
+    overflow-wrap: anywhere;
+}
+
+.vet-application-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.vet-application-actions button {
+    max-width: 100%;
+    white-space: normal;
+}
+
+@media (max-width: 760px) {
+    .admin-header {
+        gap: 14px;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .admin-management-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .admin-stat-card,
+    .admin-panel {
+        padding: 18px;
+    }
+
+    .admin-welcome {
+        align-items: flex-start;
+        padding: 22px 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-header {
+        padding: 18px 14px;
+    }
+
+    .admin-content {
+        padding: 16px 12px;
+    }
+
+    .admin-stats,
+    .admin-management-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-section-heading {
+        gap: 10px;
+    }
+
+    .vet-application-card {
+        padding: 16px;
+    }
+
+    .vet-application-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .vet-application-actions button {
+        width: 100%;
+    }
+}
+

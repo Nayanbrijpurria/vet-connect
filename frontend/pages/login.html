@@ -51,15 +51,29 @@
                         Password
                     </label>
 
-                    <input
-                            class="form-control"
-                            type="password"
-                            id="password"
-                            name="password"
-                            placeholder="Enter your password"
-                            autocomplete="current-password"
-                            required
-                    >
+
+                    <div class="password-input-wrapper">
+                        <input
+                                class="form-control"
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                        >
+
+                        <button
+                                type="button"
+                                class="password-toggle"
+                                id="password-toggle"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                        >
+                            Show
+                        </button>
+                    </div>
+
                 </div>
 
                 <p id="login-message" class="form-error hidden"
@@ -101,6 +115,30 @@
 
 <script src="../js/config.js"></script>
 <script src="../js/auth.js"></script>
+
+
+<script>
+    const passwordInput = document.getElementById("password");
+    const passwordToggle = document.getElementById("password-toggle");
+
+    passwordToggle.addEventListener("click", function () {
+        const isPasswordHidden = passwordInput.type === "password";
+
+        passwordInput.type = isPasswordHidden ? "text" : "password";
+
+        passwordToggle.textContent = isPasswordHidden ? "Hide" : "Show";
+
+        passwordToggle.setAttribute(
+            "aria-label",
+            isPasswordHidden ? "Hide password" : "Show password"
+        );
+
+        passwordToggle.setAttribute(
+            "aria-pressed",
+            String(isPasswordHidden)
+        );
+    });
+</script>
 
 </body>
 </html>

@@ -13,7 +13,11 @@
 
 <div class="app-layout">
 
-    <aside class="sidebar" id="sidebar">
+    <aside
+            class="sidebar"
+            id="sidebar"
+            aria-label="Customer dashboard sidebar"
+    >
         <a href="index.html" class="brand sidebar-brand">
             <span class="brand-mark">✚</span>
             <span>VetPlatform</span>
@@ -69,12 +73,18 @@
 
         <header class="dashboard-header">
             <div class="header-left">
-                <button type="button" id="sidebar-toggle"
+
+                <button
+                        type="button"
+                        id="sidebar-toggle"
                         class="menu-toggle"
-                        aria-label="Toggle navigation"
-                        aria-expanded="false">
-                    ☰
+                        aria-label="Open navigation menu"
+                        aria-controls="sidebar"
+                        aria-expanded="false"
+                >
+                    <span aria-hidden="true">☰</span>
                 </button>
+
 
                 <div>
                     <p class="breadcrumb">Workspace / Dashboard</p>

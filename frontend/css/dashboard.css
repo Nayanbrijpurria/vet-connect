@@ -544,70 +544,61 @@
     }
 }
 
+
+/* Customer dashboard mobile navigation refinements */
+@media (max-width: 850px) {
+    .sidebar {
+        max-height: 100dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .sidebar-nav {
+        min-width: 0;
+    }
+
+    .sidebar-link {
+        overflow-wrap: anywhere;
+    }
+
+    .sidebar-bottom {
+        padding-bottom: 8px;
+    }
+}
+
 @media (max-width: 560px) {
     .dashboard-header {
-        min-height: 75px;
-        padding: 12px 15px;
+        align-items: flex-start;
     }
 
-    .dashboard-body {
-        padding: 20px 15px;
+    .header-left {
+        flex: 1 1 auto;
     }
 
-    .page-title {
-        font-size: 1.2rem;
+    .header-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
-    .breadcrumb {
-        font-size: 0.69rem;
+    .header-profile {
+        min-width: 0;
+        max-width: 100%;
     }
 
     .profile-info {
-        display: none;
+        min-width: 0;
     }
 
-    .welcome-banner {
-        min-height: auto;
-        padding: 23px 20px;
+    .profile-info strong {
+        overflow-wrap: anywhere;
     }
 
-    .welcome-decoration {
-        display: none;
-    }
-
-    .welcome-banner h2 {
-        font-size: 1.5rem;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .stat-card {
-        padding: 17px;
-    }
-
-    .stat-top {
-        margin-bottom: 10px;
-    }
-
-    .stat-caption {
-        display: inline;
-    }
-
-    .pet-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .panel {
-        padding: 17px;
-    }
-
-    .section-header {
-        align-items: flex-start;
+    .welcome-banner .btn {
+        max-width: 100%;
+        white-space: normal;
     }
 }
+
 
 
 /* =========================================
@@ -926,7 +917,7 @@ css
     height: 44px;
     border: 1px solid var(--border-color, #e5e7eb);
     border-radius: 12px;
-    background: var(--button-background, #ffffff);
+    background: var(--background, #ffffff);
     cursor: pointer;
     font-size: 19px;
 }
@@ -1399,5 +1390,403 @@ css
     }
 }
 
+
+/* Keyboard accessibility for dashboard controls */
+.menu-toggle:focus-visible,
+.sidebar-link:focus-visible,
+.notification-button:focus-visible,
+.notification-mark-read:focus-visible {
+    outline: 3px solid #247a55;
+    outline-offset: 3px;
+}
+
+/* Keep keyboard focus visible on dashboard links */
+.stat-link:focus-visible,
+.text-link:focus-visible,
+.btn:focus-visible {
+    outline: 3px solid #247a55;
+    outline-offset: 3px;
+}
+
+
+/* Keep the notification panel within the mobile viewport */
+@media (max-width: 560px) {
+    .notification-wrapper {
+        position: relative;
+    }
+
+    .notification-panel {
+        width: min(360px, calc(100vw - 24px));
+        max-width: calc(100vw - 24px);
+        right: -8px;
+        left: auto;
+        box-sizing: border-box;
+    }
+
+    .notification-panel-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .notification-mark-read {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .notification-list {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .notification-panel-footer button {
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
+/* Responsive empty states for the customer dashboard */
+.empty-state {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.empty-state h3 {
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+.empty-state p {
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.empty-state .btn,
+.empty-state .text-link {
+    max-width: 100%;
+    white-space: normal;
+}
+
+@media (max-width: 560px) {
+    .empty-state {
+        padding: 22px 14px;
+    }
+
+    .empty-state-icon {
+        font-size: 2rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1rem;
+    }
+
+    .empty-state.compact {
+        padding: 18px 12px;
+    }
+}
+
+
+/* Responsive refinements for dashboard statistics */
+.stat-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.stat-top {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.stat-caption {
+    overflow-wrap: anywhere;
+}
+
+.stat-value {
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-link {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .stats-grid {
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .stat-label {
+        overflow-wrap: anywhere;
+    }
+
+    .stat-top {
+        align-items: flex-start;
+    }
+}
+
+
+/* Responsive welcome banner refinements */
+.welcome-banner {
+    min-width: 0;
+}
+
+.welcome-banner > div:first-child {
+    min-width: 0;
+}
+
+.welcome-banner h2 {
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+}
+
+.welcome-banner p {
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.welcome-eyebrow {
+    overflow-wrap: anywhere;
+}
+
+.welcome-decoration {
+    flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+    .welcome-banner {
+        gap: 14px;
+        padding: 20px 16px;
+    }
+
+    .welcome-banner h2 {
+        font-size: clamp(1.35rem, 6vw, 1.8rem);
+    }
+
+    .welcome-decoration {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .welcome-decoration {
+        display: none;
+    }
+}
+
+/* Responsive refinements for customer pet cards */
+.pet-grid {
+    min-width: 0;
+}
+
+.pet-grid > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.pet-grid h3,
+.pet-grid p,
+.pet-grid span {
+    overflow-wrap: anywhere;
+}
+
+.pet-grid img {
+    max-width: 100%;
+    height: auto;
+}
+
+@media (max-width: 560px) {
+    .pet-grid {
+        gap: 12px;
+    }
+
+    .pet-grid .pet-card {
+        padding: 16px;
+    }
+
+    .pet-grid .btn {
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
+
+/* Responsive refinements for appointment and medical-record lists */
+.list-container {
+    min-width: 0;
+}
+
+.list-container > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.list-container h3,
+.list-container p,
+.list-container span,
+.list-container a {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .dashboard-columns {
+        gap: 16px;
+    }
+
+    .dashboard-columns .panel {
+        min-width: 0;
+        padding: 16px;
+    }
+
+    .dashboard-columns .section-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .dashboard-columns .section-header > div {
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .dashboard-columns .section-header .btn,
+    .dashboard-columns .section-header .text-link {
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
+
+/* Responsive refinements for the customer dashboard header */
+.dashboard-header,
+.header-left,
+.header-actions,
+.header-profile,
+.profile-info {
+    min-width: 0;
+}
+
+.header-left {
+    overflow-wrap: anywhere;
+}
+
+.page-title {
+    overflow-wrap: anywhere;
+}
+
+.header-profile {
+    max-width: 100%;
+}
+
+.profile-info strong,
+.profile-info span {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .dashboard-header {
+        gap: 12px;
+        padding: 16px 12px;
+    }
+
+    .header-left {
+        flex: 1 1 180px;
+        gap: 10px;
+    }
+
+    .breadcrumb {
+        overflow-wrap: anywhere;
+    }
+
+    .header-actions {
+        flex: 0 1 auto;
+        gap: 10px;
+    }
+
+    .header-profile {
+        gap: 8px;
+    }
+
+    .profile-info strong {
+        font-size: 0.9rem;
+    }
+
+    .profile-info span {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .header-profile .profile-avatar {
+        display: none;
+    }
+
+    .profile-info span {
+        display: none;
+    }
+}
+
+
+/* Final responsive refinements for dashboard page spacing */
+.dashboard-body {
+    min-width: 0;
+}
+
+.content-section {
+    min-width: 0;
+}
+
+.section-header {
+    min-width: 0;
+}
+
+.section-header > div {
+    min-width: 0;
+}
+
+.section-header h2,
+.section-header p {
+    overflow-wrap: anywhere;
+}
+
+.dashboard-footer {
+    min-width: 0;
+    padding: 18px 12px;
+    text-align: center;
+}
+
+.dashboard-footer p {
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .dashboard-body {
+        padding: 16px 12px;
+    }
+
+    .content-section {
+        margin-bottom: 18px;
+    }
+
+    .section-header {
+        gap: 10px;
+    }
+
+    .section-header .text-link {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .dashboard-footer {
+        padding: 16px 8px;
+        font-size: 0.85rem;
+    }
+}
 
 

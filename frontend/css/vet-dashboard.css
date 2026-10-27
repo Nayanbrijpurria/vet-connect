@@ -416,3 +416,97 @@
         flex-direction: column;
     }
 }
+
+
+/* Additional responsive refinements */
+.vet-main,
+.vet-content,
+.vet-header,
+.vet-welcome,
+.vet-panel {
+    min-width: 0;
+}
+
+.vet-content {
+    overflow-wrap: anywhere;
+}
+
+.vet-stat-card,
+.vet-profile-grid > div,
+.vet-verification-box {
+    min-width: 0;
+}
+
+.vet-section-heading > div {
+    min-width: 0;
+}
+
+.vet-demo-tag {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.vet-nav-link {
+    overflow-wrap: anywhere;
+}
+
+.vet-welcome .btn {
+    max-width: 100%;
+    white-space: normal;
+}
+
+@media (max-width: 760px) {
+    .vet-header {
+        gap: 14px;
+    }
+
+    .vet-account {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .vet-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .vet-stat-card,
+    .vet-panel {
+        padding: 18px;
+    }
+
+    .vet-welcome {
+        align-items: flex-start;
+        padding: 22px 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .vet-content {
+        padding: 16px 12px;
+    }
+
+    .vet-header {
+        padding: 18px 14px;
+    }
+
+    .vet-stat-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vet-section-heading {
+        gap: 10px;
+    }
+
+    .vet-verification-box {
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .vet-note {
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+}
+

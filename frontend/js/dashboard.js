@@ -503,4 +503,3 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
-
