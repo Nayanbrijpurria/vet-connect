@@ -1790,3 +1790,228 @@ css
 }
 
 
+/* My Pets page: responsive layout and accessible form controls */
+.pet-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-width: 0;
+}
+
+.pet-toolbar input {
+    flex: 1 1 240px;
+    width: 100%;
+    min-width: 0;
+}
+
+.pet-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.pet-form-grid .form-group {
+    min-width: 0;
+}
+
+.pet-form-grid input,
+.pet-form-grid select,
+#pet-notes {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.pet-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.pet-form-actions .btn {
+    min-width: 120px;
+}
+
+.form-help,
+.pet-message {
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+    .pet-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .pet-form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .pet-form-actions .btn {
+        width: 100%;
+    }
+
+    .pet-toolbar input {
+        flex-basis: 100%;
+    }
+}
+
+
+/* Appointment page: responsive form and layout */
+.appointment-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+}
+
+.appointment-form label {
+    margin-top: 8px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.appointment-form input,
+.appointment-form select,
+.appointment-form textarea {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font: inherit;
+}
+
+.appointment-form input,
+.appointment-form select {
+    min-height: 46px;
+}
+
+.appointment-form textarea {
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.appointment-form button[type="submit"] {
+    justify-self: start;
+    max-width: 100%;
+    margin-top: 12px;
+    white-space: normal;
+}
+
+#appointment-message {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+
+#appointment-list {
+    min-width: 0;
+}
+
+#appointment-list > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .appointment-form button[type="submit"] {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .appointment-form input,
+    .appointment-form select,
+    .appointment-form textarea {
+        font-size: 16px;
+    }
+}
+
+
+/* Medical records: responsive upload form and document history */
+.medical-record-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+}
+
+.medical-record-form label {
+    margin-top: 8px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.medical-record-form input,
+.medical-record-form select,
+.medical-record-form textarea {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font: inherit;
+}
+
+.medical-record-form input:not([type="file"]),
+.medical-record-form select {
+    min-height: 46px;
+}
+
+.medical-record-form input[type="file"] {
+    padding: 10px;
+    font-size: 0.9rem;
+}
+
+.medical-record-form button[type="submit"] {
+    justify-self: start;
+    max-width: 100%;
+    margin-top: 12px;
+    white-space: normal;
+}
+
+.form-hint,
+#record-message {
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.medical-record-list {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+}
+
+.medical-record-list > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.medical-record-list a,
+.medical-record-list button {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .medical-record-form button[type="submit"] {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .medical-record-form input,
+    .medical-record-form select {
+        font-size: 16px;
+    }
+
+    .medical-record-form input[type="file"] {
+        padding: 8px;
+    }
+}
+

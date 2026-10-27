@@ -60,12 +60,14 @@
             </section>
 
             <section class="vet-stat-grid" aria-label="Dashboard summary">
+
                 <article class="vet-stat-card">
                     <span class="vet-stat-icon">📅</span>
                     <p>Appointments</p>
-                    <h3>Coming soon</h3>
-                    <span>Appointment management will be connected later.</span>
+                    <h3 id="vet-appointments-count">—</h3>
+                    <span>Your appointments returned by the server.</span>
                 </article>
+
 
                 <article class="vet-stat-card">
                     <span class="vet-stat-icon">🛡️</span>
@@ -82,20 +84,31 @@
                 </article>
             </section>
 
+
             <section class="vet-panel" id="appointments">
                 <div class="vet-section-heading">
                     <div>
                         <h2>Appointments</h2>
-                        <p>Your appointment schedule will appear here.</p>
+                        <p>View appointments assigned to you and their current status.</p>
                     </div>
-                    <span class="vet-demo-tag">Not connected yet</span>
+                    <span class="vet-demo-tag" id="vet-appointments-status">
+            Loading appointments...
+        </span>
                 </div>
-                <div class="vet-empty">
+
+                <div class="vet-empty" id="vet-appointments-empty">
                     <div class="vet-empty-icon">📅</div>
-                    <h3>Your schedule will appear here</h3>
-                    <p>We will connect this section to the appointment system after the dashboard interfaces are ready.</p>
+                    <h3>Loading your schedule</h3>
+                    <p>Your appointments will appear here when they are available.</p>
                 </div>
+
+                <div
+                        id="vet-appointments-list"
+                        class="vet-appointments-list"
+                        aria-live="polite"
+                ></div>
             </section>
+
 
             <section class="vet-panel" id="verification">
                 <div class="vet-section-heading">
@@ -118,33 +131,218 @@
                 </p>
             </section>
 
+
             <section class="vet-panel" id="profile">
                 <div class="vet-section-heading">
                     <div>
                         <h2>My professional profile</h2>
-                        <p>Your professional information will be displayed here.</p>
+                        <p>Manage your personal details and professional credentials.</p>
                     </div>
-                    <span class="vet-demo-tag">Coming soon</span>
+                    <span class="vet-demo-tag">Profile management</span>
                 </div>
+
+                <!-- Existing profile information -->
                 <div class="vet-profile-grid">
                     <div>
-                        <span>Email address</span>
-                        <strong id="vet-profile-email">Not available</strong>
+                        <span>Full name</span>
+                        <strong id="vet-profile-name">Loading...</strong>
                     </div>
                     <div>
-                        <span>Account type</span>
-                        <strong>Veterinarian</strong>
+                        <span>Email address</span>
+                        <strong id="vet-profile-email">Loading...</strong>
+                    </div>
+                    <div>
+                        <span>Phone number</span>
+                        <strong id="vet-profile-phone">Loading...</strong>
                     </div>
                     <div>
                         <span>Qualifications</span>
-                        <strong>Not connected yet</strong>
+                        <strong id="vet-profile-qualification">Loading...</strong>
                     </div>
                     <div>
                         <span>Registration number</span>
-                        <strong>Not connected yet</strong>
+                        <strong id="vet-profile-registration">Loading...</strong>
+                    </div>
+                    <div>
+                        <span>Years of experience</span>
+                        <strong id="vet-profile-experience">Loading...</strong>
+                    </div>
+                    <div>
+                        <span>Consultation fee</span>
+                        <strong id="vet-profile-fee">Loading...</strong>
+                    </div>
+                    <div>
+                        <span>Verification status</span>
+                        <strong id="vet-profile-status">Loading...</strong>
                     </div>
                 </div>
+
+                <!-- Edit profile form -->
+                <div class="vet-section-heading">
+                    <div>
+                        <h2>Edit profile details</h2>
+                        <p>Keep your contact and professional information up to date.</p>
+                    </div>
+                </div>
+
+                <form id="vet-edit-profile-form" class="vet-form">
+                    <div class="vet-profile-grid">
+                        <div class="vet-form-field">
+                            <label for="edit-vet-name">Full name</label>
+                            <input
+                                    type="text"
+                                    id="edit-vet-name"
+                                    name="fullName"
+                                    autocomplete="name"
+                                    required
+                            >
+                        </div>
+
+                        <div class="vet-form-field">
+                            <label for="edit-vet-email">Email address</label>
+                            <input
+                                    type="email"
+                                    id="edit-vet-email"
+                                    name="email"
+                                    autocomplete="email"
+                                    readonly
+                            >
+                            <small>Contact support if you need to change your email.</small>
+                        </div>
+
+                        <div class="vet-form-field">
+                            <label for="edit-vet-phone">Phone number</label>
+                            <input
+                                    type="tel"
+                                    id="edit-vet-phone"
+                                    name="phone"
+                                    autocomplete="tel"
+                                    required
+                            >
+                        </div>
+
+                        <div class="vet-form-field">
+                            <label for="edit-vet-qualification">Highest veterinary qualification</label>
+                            <input
+                                    type="text"
+                                    id="edit-vet-qualification"
+                                    name="qualification"
+                                    placeholder="e.g. BVSc & AH, MVSc"
+                                    required
+                            >
+                        </div>
+
+                        <div class="vet-form-field">
+                            <label for="edit-vet-registration">Veterinary registration number</label>
+                            <input
+                                    type="text"
+                                    id="edit-vet-registration"
+                                    name="registrationNumber"
+                                    required
+                            >
+                        </div>
+
+                        <div class="vet-form-field">
+                            <label for="edit-vet-experience">Years of experience</label>
+                            <input
+                                    type="number"
+                                    id="edit-vet-experience"
+                                    name="experienceYears"
+                                    min="0"
+                                    max="70"
+                                    step="1"
+                                    required
+                            >
+                        </div>
+
+                        <div class="vet-form-field">
+                            <label for="edit-vet-fee">Consultation fee (INR)</label>
+                            <input
+                                    type="number"
+                                    id="edit-vet-fee"
+                                    name="consultationFee"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="vet-form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            Save profile changes
+                        </button>
+                        <p id="vet-profile-message" role="status" aria-live="polite"></p>
+                    </div>
+                </form>
+
+                <!-- Professional document upload -->
+                <div class="vet-section-heading">
+                    <div>
+                        <h2>Professional documents</h2>
+                        <p>Upload your credentials so the administrator can review your application.</p>
+                    </div>
+                </div>
+
+                <form
+                        id="vet-documents-form"
+                        class="vet-form"
+                        enctype="multipart/form-data"
+                >
+                    <div class="vet-form-field">
+                        <label for="vet-degree-document">Veterinary degree certificate</label>
+                        <input
+                                type="file"
+                                id="vet-degree-document"
+                                name="degreeCertificate"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                required
+                        >
+                        <small>Accepted formats: PDF, JPG, JPEG or PNG.</small>
+                    </div>
+
+                    <div class="vet-form-field">
+                        <label for="vet-registration-document">
+                            Veterinary registration or licence certificate
+                        </label>
+                        <input
+                                type="file"
+                                id="vet-registration-document"
+                                name="registrationCertificate"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                required
+                        >
+                    </div>
+
+                    <div class="vet-form-field">
+                        <label for="vet-additional-documents">
+                            Additional qualification certificates (optional)
+                        </label>
+                        <input
+                                type="file"
+                                id="vet-additional-documents"
+                                name="additionalCertificates"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                multiple
+                        >
+                        <small>You can select more than one file.</small>
+                    </div>
+
+                    <div class="vet-form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            Submit documents for verification
+                        </button>
+                        <p id="vet-documents-message" role="status" aria-live="polite"></p>
+                    </div>
+                </form>
+
+                <p class="vet-note">
+                    Your documents contain sensitive personal information. They must be
+                    uploaded through a secure backend and reviewed by an authorised
+                    administrator. Selecting files here does not submit or verify them yet.
+                </p>
             </section>
+
 
             <footer class="vet-footer">
                 <p>VetPlatform · Veterinarian workspace</p>

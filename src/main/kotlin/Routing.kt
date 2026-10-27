@@ -728,6 +728,64 @@ fun Route.configureRouting() {
         }
 
 
+        get("/api/vets/profile") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+            val role = principal?.payload
+                ?.getClaim("role")
+                ?.asString()
+
+            if (userId == null || role.isNullOrBlank()) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    AuthResponse(message = "Invalid authentication token")
+                )
+                return@get
+            }
+
+            if (role != "VET") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "Only veterinarians can access this profile")
+                )
+                return@get
+            }
+
+            try {
+                val currentRole = UserRepository.findRoleById(userId)
+
+                if (currentRole != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        AuthResponse(message = "This is not an active veterinarian account")
+                    )
+                    return@get
+                }
+
+                val profile = VetRepository.getVetProfile(userId)
+
+                if (profile == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        AuthResponse(message = "Veterinarian profile not found")
+                    )
+                } else {
+                    call.respond(HttpStatusCode.OK, profile)
+                }
+            } catch (exception: Exception) {
+                application.log.error(
+                    "Failed to retrieve veterinarian profile",
+                    exception
+                )
+
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    AuthResponse(message = "Unable to retrieve veterinarian profile")
+                )
+            }
+        }
+
+
 
 
         // List pending veterinarian applications.
@@ -1813,6 +1871,8 @@ fun Route.configureRouting() {
 
         configureMedicalDocumentRoutes()
 
+        configureVetCredentialDocumentRoutes()
+
 
     }
 
@@ -2210,6 +2270,188 @@ private fun Route.configureMedicalDocumentRoutes() {
             )
         }
     }
-
-
 }
+
+
+private fun Route.configureVetCredentialDocumentRoutes() {
+
+    post("/api/vets/credentials") {
+        val userId = call.principal<JWTPrincipal>()
+            ?.payload
+            ?.subject
+            ?.toLongOrNull()
+
+        if (userId == null) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("message" to "Valid authentication is required")
+            )
+            return@post
+        }
+
+        try {
+            if (UserRepository.findRoleById(userId) != "VET") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("message" to "Only veterinarians can upload credentials")
+                )
+                return@post
+            }
+
+            val uploads = mutableListOf<VetCredentialUpload>()
+            var degreeSeen = false
+            var registrationSeen = false
+            var totalBytes = 0L
+
+            val multipart = call.receiveMultipart(
+                formFieldLimit = 16 * 1024L
+            )
+
+            multipart.forEachPart { part ->
+                try {
+                    if (part !is PartData.FileItem) {
+                        if (part is PartData.FormItem) {
+                            throw IllegalArgumentException(
+                                "Unexpected form field: ${part.name}"
+                            )
+                        }
+                        return@forEachPart
+                    }
+
+                    val fieldName = part.name
+                        ?: throw IllegalArgumentException(
+                            "A document field name is required"
+                        )
+
+                    val documentType = when (fieldName) {
+                        "degreeCertificate" -> {
+                            if (degreeSeen) {
+                                throw IllegalArgumentException(
+                                    "Upload only one degree certificate"
+                                )
+                            }
+                            degreeSeen = true
+                            "DEGREE_CERTIFICATE"
+                        }
+
+                        "registrationCertificate" -> {
+                            if (registrationSeen) {
+                                throw IllegalArgumentException(
+                                    "Upload only one registration certificate"
+                                )
+                            }
+                            registrationSeen = true
+                            "REGISTRATION_CERTIFICATE"
+                        }
+
+                        "additionalCertificates" -> "ADDITIONAL_CERTIFICATE"
+
+                        else -> throw IllegalArgumentException(
+                            "Unexpected document field"
+                        )
+                    }
+
+                    val originalFilename = part.originalFileName
+                        ?: throw IllegalArgumentException(
+                            "A filename is required"
+                        )
+
+                    val output = ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    val channel = part.provider()
+
+                    while (true) {
+                        val count = channel.readAvailable(
+                            buffer,
+                            0,
+                            buffer.size
+                        )
+
+                        if (count == -1) break
+                        if (count == 0) continue
+
+                        totalBytes += count
+
+                        if (
+                            totalBytes >
+                            VetCredentialDocumentService.MAX_FILE_SIZE_BYTES *
+                            VetCredentialDocumentService.MAX_FILES_PER_UPLOAD
+                        ) {
+                            throw IllegalArgumentException(
+                                "The total upload size must not exceed 50 MB"
+                            )
+                        }
+
+                        output.write(buffer, 0, count)
+                    }
+
+                    uploads.add(
+                        VetCredentialUpload(
+                            documentType = documentType,
+                            originalFileName = originalFilename,
+                            contentType = part.contentType?.toString()
+                                ?: "application/octet-stream",
+                            bytes = output.toByteArray()
+                        )
+                    )
+
+                    if (
+                        uploads.size >
+                        VetCredentialDocumentService.MAX_FILES_PER_UPLOAD
+                    ) {
+                        throw IllegalArgumentException(
+                            "Upload no more than 5 documents at a time"
+                        )
+                    }
+                } finally {
+                    part.dispose()
+                }
+            }
+
+            if (!degreeSeen || !registrationSeen) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf(
+                        "message" to
+                                "A degree certificate and registration certificate are required"
+                    )
+                )
+                return@post
+            }
+
+            val savedDocuments =
+                VetCredentialDocumentService.uploadDocuments(
+                    vetUserId = userId,
+                    uploads = uploads
+                )
+
+            call.respond(
+                HttpStatusCode.Created,
+                mapOf(
+                    "message" to "Credential documents uploaded successfully",
+                    "documents" to savedDocuments
+                )
+            )
+
+        } catch (exception: IllegalArgumentException) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf(
+                    "message" to
+                            (exception.message ?: "Invalid document upload")
+                )
+            )
+        } catch (exception: Exception) {
+            application.log.error(
+                "Veterinarian credential upload failed",
+                exception
+            )
+
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("message" to "Unable to upload credential documents")
+            )
+        }
+    }
+}
+

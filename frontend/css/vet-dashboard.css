@@ -510,3 +510,162 @@
     }
 }
 
+/* Veterinarian dashboard: layout, accessibility and responsive refinements */
+
+.vet-sidebar {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.vet-main,
+.vet-content,
+.vet-header,
+.vet-welcome,
+.vet-panel,
+.vet-stat-card {
+    min-width: 0;
+}
+
+.vet-nav-link {
+    overflow-wrap: anywhere;
+}
+
+.vet-nav-link:focus-visible,
+.vet-sidebar-bottom button:focus-visible,
+.vet-welcome .btn:focus-visible,
+.vet-panel a:focus-visible,
+.vet-panel button:focus-visible {
+    outline: 3px solid #247a55;
+    outline-offset: 3px;
+}
+
+.vet-header h1,
+.vet-section-heading h2,
+.vet-empty h3,
+.vet-profile-grid strong {
+    overflow-wrap: anywhere;
+}
+
+.vet-welcome p,
+.vet-empty p,
+.vet-verification-box p,
+.vet-note {
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.vet-stat-card > span:last-child {
+    overflow-wrap: anywhere;
+}
+
+.vet-profile-grid > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.vet-verification-box {
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.vet-verification-box > div {
+    min-width: 0;
+}
+
+.vet-demo-tag {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .vet-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .vet-account {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .vet-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .vet-welcome {
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .vet-welcome .btn {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .vet-section-heading {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .vet-stat-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vet-profile-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vet-header h1 {
+        font-size: clamp(1.4rem, 6vw, 1.8rem);
+    }
+
+    .vet-welcome-icon {
+        flex-shrink: 0;
+    }
+
+    .vet-panel {
+        padding: 16px;
+    }
+}
+
+/* Veterinarian appointment list */
+.vet-appointments-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.vet-appointment-card {
+    min-width: 0;
+    padding: 20px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow-wrap: anywhere;
+}
+
+.vet-appointment-card h3 {
+    margin: 0 0 14px;
+    font-size: 1rem;
+}
+
+.vet-appointment-card p {
+    margin: 9px 0 0;
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+#vet-appointments-empty[hidden] {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .vet-appointments-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+

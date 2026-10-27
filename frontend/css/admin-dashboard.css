@@ -537,3 +537,113 @@
     }
 }
 
+
+/* Admin dashboard: responsive and accessibility refinements */
+
+.admin-sidebar {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.admin-main,
+.admin-content,
+.admin-header,
+.admin-welcome,
+.admin-panel,
+.admin-stats,
+.admin-management-grid {
+    min-width: 0;
+}
+
+.admin-nav-link:focus-visible,
+.admin-sidebar-bottom button:focus-visible,
+.admin-panel button:focus-visible,
+.admin-panel a:focus-visible {
+    outline: 3px solid #247a55;
+    outline-offset: 3px;
+}
+
+.admin-header h1,
+.admin-welcome h2,
+.admin-section-heading h2,
+.admin-empty h3,
+.admin-management-grid h3 {
+    overflow-wrap: anywhere;
+}
+
+.admin-welcome p,
+.admin-empty p,
+.admin-management-grid p {
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.admin-account {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.admin-account strong,
+.admin-account span {
+    overflow-wrap: anywhere;
+}
+
+.admin-demo-tag {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+#vet-applications-message,
+#vet-applications-list {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.admin-management-grid article {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .admin-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-welcome {
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .admin-section-heading {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-stats,
+    .admin-management-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-header h1 {
+        font-size: clamp(1.4rem, 6vw, 1.8rem);
+    }
+
+    .admin-welcome-icon {
+        flex-shrink: 0;
+    }
+
+    .admin-panel {
+        padding: 16px;
+    }
+}
+
+

@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const listElement = document.getElementById("vet-applications-list");
     const logoutButton = document.getElementById("admin-logout");
 
+    const pendingReviewsCount = document.getElementById("pending-reviews-count");
+    const verificationDecisionsCount = document.getElementById("verification-decisions-count");
     // Frontend navigation check only. The backend must enforce authorization.
     if (!token || role !== "ADMIN") {
         window.location.replace("login.html");
@@ -88,7 +90,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             );
 
-            const data = await response.json();
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch (error) {
+                // The server may return an empty or non-JSON response.
+                data = {};
+            }
 
             if (!response.ok) {
                 throw new Error(
@@ -100,6 +109,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const applications = Array.isArray(data.applications)
                 ? data.applications
                 : [];
+
+            // Display the number of pending applications returned by the backend.
+            if (pendingReviewsCount) {
+                pendingReviewsCount.textContent = String(applications.length);
+            }
 
             if (applications.length === 0) {
                 showMessage("There are currently no pending veterinarian applications.");
