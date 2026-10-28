@@ -1,3 +1,4 @@
+const API_BASE_URL = "http://127.0.0.1:8080";
 
 document.addEventListener("DOMContentLoaded", function () {
     const email = sessionStorage.getItem("vetplatform_email");
@@ -344,9 +345,14 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("vet-email").textContent =
                 profile.fullName || emailDisplay;
         } catch (error) {
+            console.error("Failed to load veterinarian profile:", error);
+
             Object.values(fields).forEach(function (field) {
                 field.textContent = "Unable to load";
             });
+
+            document.getElementById("vet-profile-message").textContent =
+                error.message || "Unable to load your profile.";
         }
     }
 

@@ -10,13 +10,18 @@ import java.nio.file.StandardCopyOption
 import java.sql.SQLException
 import java.util.UUID
 
+@kotlinx.serialization.Serializable
+data class VetCredentialUploadResponse(
+    val message: String,
+    val documents: List<VetCredentialDocumentResponse>
+)
 data class VetCredentialUpload(
     val documentType: String,
     val originalFileName: String,
     val contentType: String,
     val bytes: ByteArray
 )
-
+@kotlinx.serialization.Serializable
 data class VetCredentialDocumentResponse(
     val id: Long,
     val documentType: String,

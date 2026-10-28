@@ -339,7 +339,7 @@ object VetRepository {
     }
 
 }
-
+@kotlinx.serialization.Serializable
 data class VetProfileResponse(
     val userId: Long,
     val fullName: String,

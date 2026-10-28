@@ -786,6 +786,99 @@ fun Route.configureRouting() {
         }
 
 
+        // Update the logged-in veterinarian's profile.
+        put("/api/vets/profile") {
+            val userId = call.principal<JWTPrincipal>()
+                ?.payload
+                ?.subject
+                ?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    AuthResponse(message = "Invalid authentication token")
+                )
+                return@put
+            }
+
+            try {
+                if (UserRepository.findRoleById(userId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        AuthResponse(
+                            message = "Only veterinarians can update this profile"
+                        )
+                    )
+                    return@put
+                }
+
+                val request = try {
+                    call.receive<UpdateVetProfileRequest>()
+                } catch (exception: Exception) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        AuthResponse(message = "Invalid profile update request")
+                    )
+                    return@put
+                }
+
+                val fullName = request.fullName.trim()
+                val phone = request.phone.trim()
+                val qualification = request.qualification.trim()
+                val registrationNumber = request.registrationNumber.trim()
+
+                if (
+                    fullName.isBlank() || fullName.length > 150 ||
+                    phone.isBlank() || phone.length > 20 ||
+                    qualification.isBlank() || qualification.length > 150 ||
+                    registrationNumber.isBlank() ||
+                    registrationNumber.length > 100 ||
+                    request.experienceYears !in 0..70 ||
+                    !request.consultationFee.isFinite() ||
+                    request.consultationFee < 0.0 ||
+                    request.consultationFee > 1000000.0
+                ) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        AuthResponse(
+                            message = "Please enter valid information in all required fields"
+                        )
+                    )
+                    return@put
+                }
+
+                val updatedProfile = VetRepository.updateVetProfile(
+                    userId = userId,
+                    fullName = fullName,
+                    phone = phone,
+                    qualification = qualification,
+                    registrationNumber = registrationNumber,
+                    experienceYears = request.experienceYears,
+                    consultationFee = request.consultationFee
+                )
+
+                if (updatedProfile == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        AuthResponse(message = "Veterinarian profile not found")
+                    )
+                } else {
+                    call.respond(HttpStatusCode.OK, updatedProfile)
+                }
+
+            } catch (exception: Exception) {
+                application.log.error(
+                    "Failed to update veterinarian profile",
+                    exception
+                )
+
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    AuthResponse(message = "Unable to update veterinarian profile")
+                )
+            }
+        }
+
 
 
         // List pending veterinarian applications.
@@ -2304,7 +2397,7 @@ private fun Route.configureVetCredentialDocumentRoutes() {
             var totalBytes = 0L
 
             val multipart = call.receiveMultipart(
-                formFieldLimit = 16 * 1024L
+                formFieldLimit = 1024L * 1024L
             )
 
             multipart.forEachPart { part ->
@@ -2427,9 +2520,9 @@ private fun Route.configureVetCredentialDocumentRoutes() {
 
             call.respond(
                 HttpStatusCode.Created,
-                mapOf(
-                    "message" to "Credential documents uploaded successfully",
-                    "documents" to savedDocuments
+                VetCredentialUploadResponse(
+                    message = "Credential documents uploaded successfully",
+                    documents = savedDocuments
                 )
             )
 
