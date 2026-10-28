@@ -305,4 +305,54 @@ object VetCredentialDocumentService {
             throw exception
         }
     }
+    suspend fun getDocuments(
+        vetUserId: Long
+    ): List<VetCredentialDocumentResponse> = withContext(Dispatchers.IO) {
+
+        DatabaseFactory.withConnection { connection ->
+            val sql = """
+                SELECT
+                    id,
+                    document_type,
+                    original_file_name,
+                    content_type,
+                    file_size,
+                    verification_status,
+                    uploaded_at
+                FROM vet_credential_documents
+                WHERE vet_user_id = ?
+                ORDER BY uploaded_at DESC
+            """.trimIndent()
+
+            connection.prepareStatement(sql).use { statement ->
+                statement.setLong(1, vetUserId)
+
+                statement.executeQuery().use { result ->
+                    val documents =
+                        mutableListOf<VetCredentialDocumentResponse>()
+
+                    while (result.next()) {
+                        documents.add(
+                            VetCredentialDocumentResponse(
+                                id = result.getLong("id"),
+                                documentType = result.getString("document_type"),
+                                originalFileName =
+                                    result.getString("original_file_name"),
+                                contentType = result.getString("content_type"),
+                                fileSize = result.getLong("file_size"),
+                                verificationStatus =
+                                    result.getString("verification_status"),
+                                uploadedAt = result.getTimestamp("uploaded_at")
+                                    .toInstant()
+                                    .toString()
+                            )
+                        )
+                    }
+
+                    documents
+                }
+            }
+        }
+    }
+
 }

@@ -274,6 +274,93 @@ document.addEventListener("DOMContentLoaded", function () {
 
     loadVerificationStatus();
 
+
+    async function loadVetCredentials() {
+        const messageElement = document.getElementById("vet-credentials-message");
+        const listElement = document.getElementById("vet-credentials-list");
+
+        if (!messageElement || !listElement) {
+            return;
+        }
+
+        messageElement.textContent = "Loading your uploaded documents...";
+        listElement.replaceChildren();
+
+        try {
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/vets/credentials`,
+                {
+                    method: "GET",
+                    headers: authHeaders
+                }
+            );
+
+
+            const documents = await readResponse(response);
+
+            if (!Array.isArray(documents)) {
+                throw new Error("Unexpected response from the server.");
+            }
+
+            if (documents.length === 0) {
+                messageElement.textContent =
+                    "You have not uploaded any credential documents yet.";
+                return;
+            }
+
+            messageElement.textContent = "";
+
+            const documentLabels = {
+                DEGREE_CERTIFICATE: "Degree Certificate",
+                REGISTRATION_CERTIFICATE: "Registration Certificate",
+                ADDITIONAL_CERTIFICATE: "Additional Certificate"
+            };
+
+            documents.forEach((document) => {
+                const card = document.createElement("article");
+                card.className = "vet-credential-card";
+
+                const title = document.createElement("h4");
+                title.textContent =
+                    documentLabels[document.documentType] ||
+                    document.documentType;
+
+                const fileName = document.createElement("p");
+                fileName.textContent =
+                    `File: ${document.originalFileName}`;
+
+                const status = document.createElement("p");
+                status.textContent =
+                    `Verification status: ${document.verificationStatus}`;
+
+                const uploadedAt = document.createElement("p");
+                const date = new Date(document.uploadedAt);
+
+                uploadedAt.textContent =
+                    `Uploaded: ${
+                        Number.isNaN(date.getTime())
+                            ? document.uploadedAt
+                            : date.toLocaleString()
+                    }`;
+
+                const fileSize = document.createElement("p");
+                fileSize.textContent =
+                    `File size: ${(document.fileSize / 1024).toFixed(1)} KB`;
+
+                card.append(title, fileName, status, uploadedAt, fileSize);
+                listElement.appendChild(card);
+            });
+        } catch (error) {
+            console.error("Failed to load veterinarian credentials:", error);
+
+            messageElement.textContent =
+                error.message || "Unable to load your credential documents.";
+        }
+    }
+
+
+
     let currentVetProfile = null;
     async function loadVetProfile() {
         const fields = {
@@ -357,7 +444,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     loadVetProfile();
-
+    loadVetCredentials();
     loadAppointments();
 
     // Save veterinarian profile changes.
@@ -585,7 +672,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 message.textContent =
                     data.message ||
                     "Your documents have been uploaded successfully.";
-
+                await loadVetCredentials();
                 form.reset();
 
             } catch (error) {
@@ -609,4 +696,235 @@ document.addEventListener("DOMContentLoaded", function () {
 
         window.location.replace("login.html");
     });
+
+
+    // Weekly availability management
+    const availabilityForm =
+        document.getElementById("vet-availability-form");
+    const availabilityIdInput =
+        document.getElementById("availability-id");
+    const availabilityDayInput =
+        document.getElementById("availability-day");
+    const availabilityStartInput =
+        document.getElementById("availability-start");
+    const availabilityEndInput =
+        document.getElementById("availability-end");
+    const availabilityDurationInput =
+        document.getElementById("availability-duration");
+    const availabilitySubmitButton =
+        document.getElementById("availability-submit-button");
+    const availabilityCancelButton =
+        document.getElementById("availability-cancel-button");
+    const availabilityMessage =
+        document.getElementById("availability-form-message");
+    const availabilityList =
+        document.getElementById("vet-availability-list");
+
+    const availabilityDays = {
+        1: "Monday",
+        2: "Tuesday",
+        3: "Wednesday",
+        4: "Thursday",
+        5: "Friday",
+        6: "Saturday",
+        7: "Sunday"
+    };
+
+    function resetAvailabilityForm() {
+        availabilityForm.reset();
+        availabilityIdInput.value = "";
+        availabilityDurationInput.value = "30";
+        availabilitySubmitButton.textContent = "Add schedule";
+        availabilityCancelButton.hidden = true;
+    }
+
+    async function loadVetAvailability() {
+        availabilityList.textContent = "Loading schedules...";
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/vets/availability`,
+                {
+                    method: "GET",
+                    headers: authHeaders
+                }
+            );
+
+            const result = await readResponse(response);
+            const schedules = result.availability;
+
+            if (!Array.isArray(schedules)) {
+                throw new Error(
+                    "The server returned an unexpected availability format."
+                );
+            }
+
+            availabilityList.replaceChildren();
+
+            if (schedules.length === 0) {
+                availabilityList.textContent =
+                    "No schedules yet. Add your first schedule above.";
+                return;
+            }
+
+            schedules.forEach(function (schedule) {
+                const card = document.createElement("article");
+                card.className = "availability-card";
+
+                const heading = document.createElement("h3");
+                heading.textContent =
+                    availabilityDays[schedule.dayOfWeek] || "Unknown day";
+
+                const details = document.createElement("p");
+                details.textContent =
+                    `${String(schedule.startTime).slice(0, 5)}–` +
+                    `${String(schedule.endTime).slice(0, 5)} · ` +
+                    `${schedule.slotDurationMinutes}-minute appointments`;
+
+                const status = document.createElement("p");
+                status.textContent = schedule.active ? "Active" : "Inactive";
+
+                card.append(heading, details, status);
+
+                if (schedule.active) {
+                    const editButton = document.createElement("button");
+                    editButton.type = "button";
+                    editButton.textContent = "Edit";
+
+                    editButton.addEventListener("click", function () {
+                        availabilityIdInput.value = schedule.id;
+                        availabilityDayInput.value =
+                            String(schedule.dayOfWeek);
+                        availabilityStartInput.value =
+                            String(schedule.startTime).slice(0, 5);
+                        availabilityEndInput.value =
+                            String(schedule.endTime).slice(0, 5);
+                        availabilityDurationInput.value =
+                            String(schedule.slotDurationMinutes);
+
+                        availabilitySubmitButton.textContent = "Save changes";
+                        availabilityCancelButton.hidden = false;
+                        availabilityMessage.textContent =
+                            "Edit the schedule above, then save your changes.";
+
+                        availabilityForm.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                    });
+
+                    const deactivateButton = document.createElement("button");
+                    deactivateButton.type = "button";
+                    deactivateButton.textContent = "Deactivate";
+
+                    deactivateButton.addEventListener(
+                        "click",
+                        async function () {
+                            if (!window.confirm(
+                                "Deactivate this schedule?"
+                            )) {
+                                return;
+                            }
+
+                            deactivateButton.disabled = true;
+
+                            try {
+                                const deleteResponse = await fetch(
+                                    `${API_BASE_URL}/api/vets/availability/${schedule.id}`,
+                                    {
+                                        method: "DELETE",
+                                        headers: authHeaders
+                                    }
+                                );
+
+                                await readResponse(deleteResponse);
+
+                                availabilityMessage.textContent =
+                                    "Schedule deactivated.";
+                                await loadVetAvailability();
+                            } catch (error) {
+                                availabilityMessage.textContent =
+                                    error.message ||
+                                    "Could not deactivate the schedule.";
+                                deactivateButton.disabled = false;
+                            }
+                        }
+                    );
+
+                    card.append(editButton, deactivateButton);
+                }
+
+                availabilityList.appendChild(card);
+            });
+        } catch (error) {
+            availabilityList.textContent =
+                error.message || "Could not load availability.";
+        }
+    }
+
+    availabilityForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const availabilityId = availabilityIdInput.value;
+
+        const requestBody = {
+            dayOfWeek: Number(availabilityDayInput.value),
+            startTime: availabilityStartInput.value,
+            endTime: availabilityEndInput.value,
+            slotDurationMinutes: Number(availabilityDurationInput.value)
+        };
+
+        if (
+            !requestBody.dayOfWeek ||
+            !requestBody.startTime ||
+            !requestBody.endTime ||
+            requestBody.endTime <= requestBody.startTime
+        ) {
+            availabilityMessage.textContent =
+                "Select a day and enter a valid start and end time.";
+            return;
+        }
+
+        availabilitySubmitButton.disabled = true;
+        availabilityMessage.textContent = "Saving schedule...";
+
+        try {
+            const response = await fetch(
+                availabilityId
+                    ? `${API_BASE_URL}/api/vets/availability/${availabilityId}`
+                    : `${API_BASE_URL}/api/vets/availability`,
+                {
+                    method: availabilityId ? "PUT" : "POST",
+                    headers: {
+                        ...authHeaders,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                }
+            );
+
+            await readResponse(response);
+
+            availabilityMessage.textContent = availabilityId
+                ? "Schedule updated successfully."
+                : "Schedule added successfully.";
+
+            resetAvailabilityForm();
+            await loadVetAvailability();
+        } catch (error) {
+            availabilityMessage.textContent =
+                error.message || "Could not save the schedule.";
+        } finally {
+            availabilitySubmitButton.disabled = false;
+        }
+    });
+
+    availabilityCancelButton.addEventListener("click", function () {
+        resetAvailabilityForm();
+        availabilityMessage.textContent = "Edit cancelled.";
+    });
+
+    loadVetAvailability();
+
+
 });

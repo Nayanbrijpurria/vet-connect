@@ -27,11 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const submitButton = form.querySelector('button[type="submit"]');
 
     // Booking remains disabled until availability-aware scheduling is implemented.
-    if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.title =
-            "Appointment booking will be enabled after availability scheduling is implemented.";
-    }
+    // if (submitButton) {
+    //     submitButton.disabled = true;
+    //     submitButton.title =
+    //         "Appointment booking will be enabled after availability scheduling is implemented.";
+    // }
 
     const today = new Date();
     dateInput.min = [
@@ -332,9 +332,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } finally {
             if (submitButton) {
                 submitButton.textContent = "Book appointment";
-                submitButton.disabled = true;
-                submitButton.title =
-                    "Booking remains disabled until the full flow is reviewed.";
+                submitButton.disabled = false;
+                submitButton.title = "";
             }
         }
     });

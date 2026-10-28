@@ -623,6 +623,81 @@ fun Route.configureRouting() {
             }
         }
 
+        put("/api/vets/availability/{id}") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+
+            if (userId == null) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Invalid authentication")
+                )
+                return@put
+            }
+
+            val availabilityId = call.parameters["id"]?.toLongOrNull()
+
+            if (availabilityId == null || availabilityId <= 0) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "A valid availability ID is required")
+                )
+                return@put
+            }
+
+            try {
+                if (UserRepository.findRoleById(userId) != "VET") {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only veterinarians can manage availability")
+                    )
+                    return@put
+                }
+
+                if (!VetRepository.isVetApproved(userId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Your veterinarian profile must be approved first")
+                    )
+                    return@put
+                }
+
+                val request = call.receive<CreateAvailabilityRequest>()
+
+                val updated = AvailabilityRepository.updateAvailability(
+                    vetUserId = userId,
+                    availabilityId = availabilityId,
+                    request = request
+                )
+
+                if (updated == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Availability not found or inactive")
+                    )
+                    return@put
+                }
+
+                call.respond(HttpStatusCode.OK, updated)
+
+            } catch (e: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to (e.message ?: "Invalid availability"))
+                )
+            } catch (e: Exception) {
+                call.application.log.error(
+                    "Failed to update veterinarian availability",
+                    e
+                )
+
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Could not update availability")
+                )
+            }
+        }
+
         delete("/api/vets/availability/{id}") {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal?.payload?.subject?.toLongOrNull()
@@ -2543,6 +2618,51 @@ private fun Route.configureVetCredentialDocumentRoutes() {
             call.respond(
                 HttpStatusCode.InternalServerError,
                 mapOf("message" to "Unable to upload credential documents")
+            )
+        }
+    }
+
+    get("/api/vets/credentials") {
+        val userId = call.principal<JWTPrincipal>()
+            ?.payload
+            ?.subject
+            ?.toLongOrNull()
+
+        if (userId == null) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                AuthResponse(message = "Valid authentication is required")
+            )
+            return@get
+        }
+
+        try {
+            if (UserRepository.findRoleById(userId) != "VET") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(
+                        message = "Only veterinarians can view their credentials"
+                    )
+                )
+                return@get
+            }
+
+            val documents =
+                VetCredentialDocumentService.getDocuments(userId)
+
+            call.respond(HttpStatusCode.OK, documents)
+
+        } catch (exception: Exception) {
+            application.log.error(
+                "Failed to retrieve veterinarian credential documents",
+                exception
+            )
+
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                AuthResponse(
+                    message = "Unable to retrieve credential documents"
+                )
             )
         }
     }

@@ -185,6 +185,75 @@
                     </div>
                 </div>
 
+
+                <section class="vet-availability-section" id="vet-availability-section">
+                    <h2>Weekly Availability</h2>
+                    <p>Choose when pet parents can book consultations with you.</p>
+
+                    <form id="vet-availability-form">
+                        <input type="hidden" id="availability-id">
+
+                        <div class="availability-form-grid">
+                            <label for="availability-day">
+                                Day of week
+                                <select id="availability-day" required>
+                                    <option value="">Select a day</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                    <option value="7">Sunday</option>
+                                </select>
+                            </label>
+
+                            <label for="availability-start">
+                                Start time
+                                <input type="time" id="availability-start" required>
+                            </label>
+
+                            <label for="availability-end">
+                                End time
+                                <input type="time" id="availability-end" required>
+                            </label>
+
+                            <label for="availability-duration">
+                                Appointment duration
+                                <select id="availability-duration" required>
+                                    <option value="10">10 minutes</option>
+                                    <option value="15">15 minutes</option>
+                                    <option value="20">20 minutes</option>
+                                    <option value="30" selected>30 minutes</option>
+                                    <option value="45">45 minutes</option>
+                                    <option value="60">60 minutes</option>
+                                    <option value="90">90 minutes</option>
+                                    <option value="120">120 minutes</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="availability-form-actions">
+                            <button type="submit" id="availability-submit-button">
+                                Add schedule
+                            </button>
+
+                            <button type="button" id="availability-cancel-button" hidden>
+                                Cancel edit
+                            </button>
+                        </div>
+
+                        <p id="availability-form-message"
+                           role="status"
+                           aria-live="polite"></p>
+                    </form>
+
+                    <div id="vet-availability-list" aria-live="polite">
+                        <p>Loading schedules...</p>
+                    </div>
+                </section>
+
+
                 <form id="vet-edit-profile-form" class="vet-form">
                     <div class="vet-profile-grid">
                         <div class="vet-form-field">
@@ -289,6 +358,19 @@
                         class="vet-form"
                         enctype="multipart/form-data"
                 >
+
+                    <!-- Uploaded credential documents -->
+                    <section class="vet-credentials-list-section">
+                        <h3>My Uploaded Credentials</h3>
+                        <p>View the documents you have submitted for verification.</p>
+
+                        <div id="vet-credentials-message" role="status">
+                            Loading your uploaded documents...
+                        </div>
+
+                        <div id="vet-credentials-list"></div>
+                    </section>
+
                     <div class="vet-form-field">
                         <label for="vet-degree-document">Veterinary degree certificate</label>
                         <input

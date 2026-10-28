@@ -199,4 +199,153 @@ object AvailabilityRepository {
             }
         }
     }
+
+
+    suspend fun updateAvailability(
+        vetUserId: Long,
+        availabilityId: Long,
+        request: CreateAvailabilityRequest
+    ): AvailabilityResponse = withContext(Dispatchers.IO) {
+
+        require(availabilityId > 0) {
+            "A valid availability ID is required"
+        }
+
+        require(request.dayOfWeek in 1..7) {
+            "Day must be between 1 (Monday) and 7 (Sunday)"
+        }
+
+        val startTime = try {
+            LocalTime.parse(request.startTime)
+        } catch (e: Exception) {
+            throw IllegalArgumentException(
+                "Start time must use HH:mm format"
+            )
+        }
+
+        val endTime = try {
+            LocalTime.parse(request.endTime)
+        } catch (e: Exception) {
+            throw IllegalArgumentException(
+                "End time must use HH:mm format"
+            )
+        }
+
+        require(endTime.isAfter(startTime)) {
+            "End time must be later than start time"
+        }
+
+        require(request.slotDurationMinutes in 10..240) {
+            "Appointment duration must be between 10 and 240 minutes"
+        }
+
+        DatabaseFactory.withConnection { connection ->
+            val originalAutoCommit = connection.autoCommit
+
+            try {
+                connection.autoCommit = false
+
+                connection.prepareStatement(
+                    """
+                    SELECT user_id
+                    FROM vet_profiles
+                    WHERE user_id = ?
+                    FOR UPDATE
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetUserId)
+
+                    statement.executeQuery().use { rs ->
+                        require(rs.next()) {
+                            "Veterinarian profile not found"
+                        }
+                    }
+                }
+
+                val overlapExists = connection.prepareStatement(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM vet_availability
+                        WHERE vet_profile_id = ?
+                          AND day_of_week = ?
+                          AND active = TRUE
+                          AND id <> ?
+                          AND start_time < ?
+                          AND end_time > ?
+                    )
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetUserId)
+                    statement.setInt(2, request.dayOfWeek)
+                    statement.setLong(3, availabilityId)
+                    statement.setTime(
+                        4,
+                        java.sql.Time.valueOf(endTime)
+                    )
+                    statement.setTime(
+                        5,
+                        java.sql.Time.valueOf(startTime)
+                    )
+
+                    statement.executeQuery().use { rs ->
+                        rs.next()
+                        rs.getBoolean(1)
+                    }
+                }
+
+                require(!overlapExists) {
+                    "This schedule overlaps another active schedule"
+                }
+
+                val updated = connection.prepareStatement(
+                    """
+                    UPDATE vet_availability
+                    SET day_of_week = ?,
+                        start_time = ?,
+                        end_time = ?,
+                        slot_duration_minutes = ?
+                    WHERE id = ?
+                      AND vet_profile_id = ?
+                      AND active = TRUE
+                    RETURNING id, vet_profile_id, day_of_week,
+                              start_time, end_time,
+                              slot_duration_minutes, active
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setInt(1, request.dayOfWeek)
+                    statement.setTime(
+                        2,
+                        java.sql.Time.valueOf(startTime)
+                    )
+                    statement.setTime(
+                        3,
+                        java.sql.Time.valueOf(endTime)
+                    )
+                    statement.setInt(4, request.slotDurationMinutes)
+                    statement.setLong(5, availabilityId)
+                    statement.setLong(6, vetUserId)
+
+                    statement.executeQuery().use { rs ->
+                        if (!rs.next()) {
+                            throw IllegalArgumentException(
+                                "Schedule not found or already inactive"
+                            )
+                        }
+
+                        mapAvailability(rs)
+                    }
+                }
+
+                connection.commit()
+                updated
+            } catch (e: Exception) {
+                connection.rollback()
+                throw e
+            } finally {
+                connection.autoCommit = originalAutoCommit
+            }
+        }
+    }
+
 }
