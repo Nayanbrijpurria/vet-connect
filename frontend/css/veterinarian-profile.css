@@ -397,3 +397,24 @@
         flex-direction: column;
     }
 }
+
+.vet-cancel-appointment-button {
+    margin-top: 0.75rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid #dc2626;
+    border-radius: 6px;
+    background: #fff;
+    color: #b91c1c;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vet-cancel-appointment-button:hover:not(:disabled) {
+    background: #fef2f2;
+}
+
+.vet-cancel-appointment-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

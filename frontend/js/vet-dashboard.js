@@ -229,6 +229,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 );
 
                 const dateValue = getValue(appointment, [
+                    "scheduledStart",
                     "appointmentDateTime",
                     "scheduledAt",
                     "appointmentDate",
@@ -248,6 +249,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     getValue(appointment, ["status", "appointmentStatus"])
                 );
 
+
                 addDetail(
                     card,
                     "Reason",
@@ -258,7 +260,77 @@ document.addEventListener("DOMContentLoaded", function () {
                     ])
                 );
 
+// Allow cancellation only for confirmed appointments
+// whose scheduled start time is still in the future.
+                const appointmentStatus = String(
+                    getValue(appointment, ["status", "appointmentStatus"]) || ""
+                ).toUpperCase();
+
+                const appointmentId = getValue(appointment, ["id", "appointmentId"]);
+                const scheduledStart = getValue(appointment, ["scheduledStart"]);
+                const startDate = scheduledStart ? new Date(scheduledStart) : null;
+
+                if (
+                    appointmentStatus === "CONFIRMED" &&
+                    startDate &&
+                    !Number.isNaN(startDate.getTime()) &&
+                    startDate.getTime() > Date.now() &&
+                    appointmentId != null
+                ) {
+                    const cancelButton = document.createElement("button");
+                    cancelButton.type = "button";
+                    cancelButton.className = "vet-cancel-appointment-button";
+                    cancelButton.textContent = "Cancel appointment";
+
+                    cancelButton.addEventListener("click", async function () {
+                        const confirmed = window.confirm(
+                            `Are you sure you want to cancel appointment #${appointmentId}?`
+                        );
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        cancelButton.disabled = true;
+                        cancelButton.textContent = "Cancelling...";
+                        statusLabel.textContent = `Cancelling appointment #${appointmentId}...`;
+
+                        try {
+                            const response = await fetch(
+                                `${API_BASE_URL}/api/vets/appointments/${encodeURIComponent(appointmentId)}/status`,
+                                {
+                                    method: "PATCH",
+                                    headers: {
+                                        ...authHeaders,
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        action: "CANCELLED"
+                                    })
+                                }
+                            );
+
+                            await readResponse(response);
+
+                            statusLabel.textContent =
+                                `Appointment #${appointmentId} cancelled successfully.`;
+
+                            // Reload from the backend so the displayed status is current.
+                            await loadAppointments();
+                        } catch (error) {
+                            statusLabel.textContent =
+                                error.message || "Unable to cancel this appointment.";
+
+                            cancelButton.disabled = false;
+                            cancelButton.textContent = "Cancel appointment";
+                        }
+                    });
+
+                    card.appendChild(cancelButton);
+                }
+
                 list.appendChild(card);
+
             });
         } catch (error) {
             count.textContent = "—";
