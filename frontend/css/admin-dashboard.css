@@ -647,3 +647,81 @@
 }
 
 
+
+/* Live veterinarian verification queue */
+.admin-stats {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
+}
+
+.admin-refresh-button,
+.credential-view-button {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    color: var(--text-secondary);
+    background: #fff;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.admin-refresh-button:hover,
+.credential-view-button:hover {
+    border-color: var(--primary);
+    color: var(--primary-dark);
+}
+
+.admin-refresh-button:disabled,
+.vet-application-actions button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.admin-queue-message {
+    margin: 12px 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.credential-review-section {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.credential-review-section > h4,
+.credential-review-card h4 {
+    margin: 0 0 12px;
+}
+
+.credential-review-card {
+    margin: 12px 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-muted, #f8fafc);
+    overflow-wrap: anywhere;
+}
+
+.credential-review-card p {
+    margin: 8px 0;
+}
+
+.credential-warning {
+    color: #a11b1b;
+}
+
+.credential-loading {
+    color: var(--text-muted);
+}
+
+.vet-application-actions button:first-child,
+.vet-application-actions button:last-child {
+    min-height: 40px;
+}
+
+@media (max-width: 760px) {
+    .admin-stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

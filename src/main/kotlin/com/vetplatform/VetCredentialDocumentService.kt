@@ -32,6 +32,12 @@ data class VetCredentialDocumentResponse(
     val uploadedAt: String
 )
 
+data class VetCredentialFileDownload(
+    val originalFileName: String,
+    val contentType: String,
+    val bytes: ByteArray
+)
+
 object VetCredentialDocumentService {
 
     const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024
@@ -185,6 +191,7 @@ object VetCredentialDocumentService {
 
         val storedFiles = mutableListOf<Path>()
         val responses = mutableListOf<VetCredentialDocumentResponse>()
+        var transactionCommitted = false
 
         try {
             DatabaseFactory.withConnection { connection ->
@@ -280,6 +287,7 @@ object VetCredentialDocumentService {
                     }
 
                     connection.commit()
+                    transactionCommitted = true
                 } catch (exception: Exception) {
                     try {
                         connection.rollback()
@@ -294,11 +302,13 @@ object VetCredentialDocumentService {
 
             responses
         } catch (exception: Exception) {
-            storedFiles.forEach { file ->
-                try {
-                    Files.deleteIfExists(file)
-                } catch (cleanupException: IOException) {
-                    exception.addSuppressed(cleanupException)
+            if (!transactionCommitted) {
+                storedFiles.forEach { file ->
+                    try {
+                        Files.deleteIfExists(file)
+                    } catch (cleanupException: IOException) {
+                        exception.addSuppressed(cleanupException)
+                    }
                 }
             }
 
@@ -353,6 +363,55 @@ object VetCredentialDocumentService {
                 }
             }
         }
+    }
+
+    suspend fun getDocumentFileForAdmin(
+        vetUserId: Long,
+        documentId: Long
+    ): VetCredentialFileDownload? = withContext(Dispatchers.IO) {
+        val sql = """
+            SELECT stored_file_name, original_file_name, content_type
+            FROM vet_credential_documents
+            WHERE id = ? AND vet_user_id = ?
+        """.trimIndent()
+
+        val fileDetails = DatabaseFactory.withConnection { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setLong(1, documentId)
+                statement.setLong(2, vetUserId)
+                statement.executeQuery().use { result ->
+                    if (result.next()) {
+                        Triple(
+                            result.getString("stored_file_name"),
+                            result.getString("original_file_name"),
+                            result.getString("content_type")
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+        } ?: return@withContext null
+
+        val normalizedDirectory = storageDirectory.toRealPath()
+        val storedPath = normalizedDirectory
+            .resolve(fileDetails.first)
+            .normalize()
+
+        if (storedPath.parent != normalizedDirectory) {
+            throw SecurityException("Invalid credential storage path")
+        }
+
+        val realFile = storedPath.toRealPath()
+        if (realFile.parent != normalizedDirectory || !Files.isRegularFile(realFile)) {
+            throw SecurityException("Invalid credential storage file")
+        }
+
+        VetCredentialFileDownload(
+            originalFileName = fileDetails.second,
+            contentType = fileDetails.third,
+            bytes = Files.readAllBytes(realFile)
+        )
     }
 
 }

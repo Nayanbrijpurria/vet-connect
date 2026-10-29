@@ -32,3 +32,28 @@ data class VetReviewResponse(
     val userId: Long,
     val verificationStatus: String
 )
+
+@Serializable
+data class AdminVetCredentialResponse(
+    val id: Long,
+    val vetUserId: Long,
+    val documentType: String,
+    val originalFileName: String,
+    val contentType: String,
+    val fileSize: Long,
+    val verificationStatus: String,
+    val adminNotes: String?,
+    val uploadedAt: String,
+    val reviewedAt: String?
+)
+
+@Serializable
+data class CredentialReviewRequest(
+    val adminNotes: String? = null
+)
+
+@Serializable
+data class CredentialReviewResponse(
+    val message: String,
+    val document: AdminVetCredentialResponse
+)

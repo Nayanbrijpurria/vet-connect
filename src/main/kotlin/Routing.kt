@@ -68,6 +68,7 @@ fun Route.configureRouting() {
             return@post
         }
 
+
         if (password.length < 8 || password.length > 72) {
             call.respond(
                 HttpStatusCode.BadRequest,
@@ -366,6 +367,7 @@ fun Route.configureRouting() {
                 "Failed to retrieve approved veterinarians",
                 exception
             )
+
             call.respond(
                 HttpStatusCode.InternalServerError,
                 mapOf("error" to "Unable to retrieve approved veterinarians")
@@ -1046,6 +1048,14 @@ fun Route.configureRouting() {
                     } else {
                         call.respond(HttpStatusCode.OK, result)
                     }
+                } catch (exception: IllegalStateException) {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        AuthResponse(
+                            message = exception.message
+                                ?: "Required credentials are not approved"
+                        )
+                    )
                 } catch (exception: SecurityException) {
                     call.respond(
                         HttpStatusCode.Forbidden,
@@ -1837,6 +1847,7 @@ fun Route.configureRouting() {
             }
 
             try {
+
                 if (UserRepository.findRoleById(vetUserId) != "VET") {
                     call.respond(
                         HttpStatusCode.Forbidden,
@@ -2040,6 +2051,7 @@ fun Route.configureRouting() {
         configureMedicalDocumentRoutes()
 
         configureVetCredentialDocumentRoutes()
+        configureAdminVetCredentialRoutes()
 
 
     }
@@ -2665,6 +2677,137 @@ private fun Route.configureVetCredentialDocumentRoutes() {
                 )
             )
         }
+    }
+}
+
+private suspend fun io.ktor.server.application.ApplicationCall.adminIdOrRespond(): Long? {
+    val principal = principal<JWTPrincipal>()
+    val adminId = principal?.payload?.subject?.toLongOrNull()
+    val tokenRole = principal?.payload?.getClaim("role")?.asString()
+
+    if (adminId == null) {
+        respond(HttpStatusCode.Unauthorized, AuthResponse("Valid authentication is required"))
+        return null
+    }
+
+    if (tokenRole != "ADMIN" || UserRepository.findRoleById(adminId) != "ADMIN") {
+        respond(HttpStatusCode.Forbidden, AuthResponse("Administrator access required"))
+        return null
+    }
+
+    return adminId
+}
+
+private fun Route.configureAdminVetCredentialRoutes() {
+    get("/api/admin/vets/{userId}/credentials") {
+        val adminId = call.adminIdOrRespond() ?: return@get
+        val vetUserId = call.parameters["userId"]?.toLongOrNull()
+        if (vetUserId == null || vetUserId <= 0) {
+            call.respond(HttpStatusCode.BadRequest, AuthResponse("A valid veterinarian user ID is required"))
+            return@get
+        }
+
+        try {
+            call.respond(HttpStatusCode.OK, AdminRepository.getVetCredentials(vetUserId))
+        } catch (exception: Exception) {
+            application.log.error("Failed to retrieve veterinarian credentials for admin $adminId", exception)
+            call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to retrieve credential documents"))
+        }
+    }
+
+    get("/api/admin/vets/{userId}/credentials/{documentId}/file") {
+        val adminId = call.adminIdOrRespond() ?: return@get
+        val vetUserId = call.parameters["userId"]?.toLongOrNull()
+        val documentId = call.parameters["documentId"]?.toLongOrNull()
+        if (vetUserId == null || vetUserId <= 0 || documentId == null || documentId <= 0) {
+            call.respond(HttpStatusCode.BadRequest, AuthResponse("A valid veterinarian and document ID are required"))
+            return@get
+        }
+
+        try {
+            val document = VetCredentialDocumentService.getDocumentFileForAdmin(vetUserId, documentId)
+            if (document == null) {
+                call.respond(HttpStatusCode.NotFound, AuthResponse("Credential document not found"))
+                return@get
+            }
+
+            val safeName = document.originalFileName
+                .substringAfterLast('/').substringAfterLast('\\')
+                .replace("\"", "").replace("\r", "").replace("\n", "")
+            call.response.header(
+                io.ktor.http.HttpHeaders.ContentDisposition,
+                io.ktor.http.ContentDisposition.Inline.withParameter(
+                    io.ktor.http.ContentDisposition.Parameters.FileName,
+                    safeName
+                ).toString()
+            )
+            call.response.header("Cache-Control", "private, no-store")
+            call.response.header("X-Content-Type-Options", "nosniff")
+            call.respondBytes(
+                document.bytes,
+                ContentType.parse(document.contentType),
+                HttpStatusCode.OK
+            )
+        } catch (exception: Exception) {
+            application.log.error("Admin $adminId failed to retrieve a credential file", exception)
+            call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to retrieve credential document"))
+        }
+    }
+
+    put("/api/admin/vets/{userId}/credentials/{documentId}/approve") {
+        reviewCredentialDocument(approved = true)
+    }
+
+    put("/api/admin/vets/{userId}/credentials/{documentId}/reject") {
+        reviewCredentialDocument(approved = false)
+    }
+}
+
+private suspend fun io.ktor.server.routing.RoutingContext.reviewCredentialDocument(
+    approved: Boolean
+) {
+    val adminId = call.adminIdOrRespond() ?: return
+    val vetUserId = call.parameters["userId"]?.toLongOrNull()
+    val documentId = call.parameters["documentId"]?.toLongOrNull()
+    if (vetUserId == null || vetUserId <= 0 || documentId == null || documentId <= 0) {
+        call.respond(HttpStatusCode.BadRequest, AuthResponse("A valid veterinarian and document ID are required"))
+        return
+    }
+
+    try {
+        val request = call.receive<CredentialReviewRequest>()
+        val notes = request.adminNotes?.trim()
+        if ((!approved && notes.isNullOrBlank()) || (notes != null && notes.length > 500)) {
+            call.respond(
+                HttpStatusCode.BadRequest,
+                AuthResponse("A rejection reason is required and notes must not exceed 500 characters")
+            )
+            return
+        }
+
+        val document = AdminRepository.reviewCredential(
+            vetUserId = vetUserId,
+            documentId = documentId,
+            adminId = adminId,
+            approved = approved,
+            adminNotes = notes
+        )
+        if (document == null) {
+            call.respond(HttpStatusCode.Conflict, AuthResponse("Credential not found or already reviewed"))
+        } else {
+            call.respond(
+                HttpStatusCode.OK,
+                CredentialReviewResponse(
+                    message = if (approved) "Credential approved" else "Credential rejected",
+                    document = document
+                )
+            )
+        }
+    } catch (exception: SecurityException) {
+        call.respond(HttpStatusCode.Forbidden, AuthResponse("Administrator access required"))
+    } catch (exception: Exception) {
+        call.application.log.error("Failed to review veterinarian credential as admin $adminId", exception)
+        call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to review credential"))
     }
 }
 

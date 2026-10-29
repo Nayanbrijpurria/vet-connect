@@ -46,7 +46,6 @@ object AppointmentRepository {
 
             try {
                 connection.autoCommit = false
-
                 // 1. Verify that this pet belongs to the customer.
                 val ownsPet = connection.prepareStatement(
                     """

@@ -389,36 +389,36 @@ document.addEventListener("DOMContentLoaded", function () {
                 ADDITIONAL_CERTIFICATE: "Additional Certificate"
             };
 
-            documents.forEach((document) => {
+            documents.forEach((credential) => {
                 const card = document.createElement("article");
                 card.className = "vet-credential-card";
 
                 const title = document.createElement("h4");
                 title.textContent =
-                    documentLabels[document.documentType] ||
-                    document.documentType;
+                    documentLabels[credential.documentType] ||
+                    credential.documentType;
 
                 const fileName = document.createElement("p");
                 fileName.textContent =
-                    `File: ${document.originalFileName}`;
+                    `File: ${credential.originalFileName}`;
 
                 const status = document.createElement("p");
                 status.textContent =
-                    `Verification status: ${document.verificationStatus}`;
+                    `Verification status: ${credential.verificationStatus}`;
 
                 const uploadedAt = document.createElement("p");
-                const date = new Date(document.uploadedAt);
+                const date = new Date(credential.uploadedAt);
 
                 uploadedAt.textContent =
                     `Uploaded: ${
                         Number.isNaN(date.getTime())
-                            ? document.uploadedAt
+                            ? credential.uploadedAt
                             : date.toLocaleString()
                     }`;
 
                 const fileSize = document.createElement("p");
                 fileSize.textContent =
-                    `File size: ${(document.fileSize / 1024).toFixed(1)} KB`;
+                    `File size: ${(credential.fileSize / 1024).toFixed(1)} KB`;
 
                 card.append(title, fileName, status, uploadedAt, fileSize);
                 listElement.appendChild(card);

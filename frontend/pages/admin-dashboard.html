@@ -1,5 +1,4 @@
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,26 +9,16 @@
 </head>
 <body>
 <div class="admin-layout">
-
     <aside class="admin-sidebar">
-        <a href="index.html" class="brand">
-            <span class="brand-mark">✚</span>
-            <span>VetPlatform</span>
-        </a>
-
+        <a href="index.html" class="brand"><span class="brand-mark">V</span><span>VetPlatform</span></a>
         <p class="admin-menu-label">ADMINISTRATION</p>
-
         <nav class="admin-nav">
-            <a class="admin-nav-link active" href="admin-dashboard.html">▦ &nbsp; Overview</a>
-            <a class="admin-nav-link" href="#applications">✓ &nbsp; Vet applications</a>
-            <a class="admin-nav-link" href="#management">⚙ &nbsp; Platform management</a>
+            <a class="admin-nav-link active" href="admin-dashboard.html">Overview</a>
+            <a class="admin-nav-link" href="#applications">Veterinarian applications</a>
         </nav>
-
         <div class="admin-sidebar-bottom">
-            <a class="admin-nav-link" href="index.html">← &nbsp; Back to website</a>
-            <button class="admin-nav-link" id="admin-logout" type="button">
-                ⇥ &nbsp; Log out
-            </button>
+            <a class="admin-nav-link" href="index.html">Back to website</a>
+            <button class="admin-nav-link" id="admin-logout" type="button">Log out</button>
         </div>
     </aside>
 
@@ -40,106 +29,44 @@
                 <h1>Admin Dashboard</h1>
             </div>
             <div class="admin-account">
-                <div class="admin-avatar">🛡️</div>
-                <div>
-                    <strong>Platform Administrator</strong>
-                    <span id="admin-email">Admin account</span>
-                </div>
+                <div class="admin-avatar" aria-hidden="true">A</div>
+                <div><strong>Platform Administrator</strong><span id="admin-email">Admin account</span></div>
             </div>
         </header>
 
         <div class="admin-content">
             <section class="admin-welcome">
                 <div>
-                    <span class="admin-eyebrow">PLATFORM CONTROL CENTRE</span>
-                    <h2>Welcome to VetPlatform administration</h2>
-                    <p>Review professional applications and help maintain a trustworthy veterinary platform.</p>
+                    <span class="admin-eyebrow">VETERINARIAN VERIFICATION</span>
+                    <h2>Review applications and credentials</h2>
+                    <p>Inspect professional details and uploaded evidence before approving a veterinarian.</p>
                 </div>
-                <div class="admin-welcome-icon">🛡️</div>
             </section>
 
-            <section class="admin-stats">
+            <section class="admin-stats" aria-label="Review queue summary">
                 <article class="admin-stat-card">
-                    <span class="admin-stat-icon">🩺</span>
-                    <p>Veterinarian applications</p>
-                    <div id="vet-applications-message" role="status">
-                        Veterinarian applications will appear here.
-                    </div>
-
-                    <div id="vet-applications-list"></div>
-                </article>
-
-
-                <article class="admin-stat-card">
-                    <span class="admin-stat-icon">⏳</span>
-                    <p>Pending reviews</p>
+                    <span class="admin-stat-icon" aria-hidden="true">&#9203;</span>
+                    <p>Pending applications</p>
                     <h3 id="pending-reviews-count">—</h3>
-                    <span>Pending applications returned by the server.</span>
+                    <span>Applications awaiting review.</span>
                 </article>
-
-
-
-                <article class="admin-stat-card">
-                    <span class="admin-stat-icon">✓</span>
-                    <p>Verification decisions</p>
-                    <h3 id="verification-decisions-count">—</h3>
-                    <span>Decision totals will appear when supported by the backend.</span>
-                </article>
-
             </section>
 
             <section class="admin-panel" id="applications">
                 <div class="admin-section-heading">
                     <div>
                         <h2>Veterinarian applications</h2>
-                        <p>Review submitted professional details before making a verification decision.</p>
+                        <p>Review each required document before approving an application.</p>
                     </div>
-                    <span class="admin-demo-tag">Backend connection pending</span>
+                    <button class="admin-refresh-button" id="admin-refresh-applications" type="button">Refresh queue</button>
                 </div>
-
-                <div class="admin-empty">
-                    <div class="admin-empty-icon">📋</div>
-                    <h3>Applications will appear here</h3>
-                    <p>Once connected, this section will display applications retrieved from the backend.</p>
-                    <p>We will add review, approve and reject actions only after confirming the correct API routes and authorization rules.</p>
+                <div id="vet-applications-message" class="admin-queue-message" role="status" aria-live="polite">
+                    Loading veterinarian applications...
                 </div>
+                <div id="vet-applications-list"></div>
             </section>
 
-            <section class="admin-panel" id="management">
-                <div class="admin-section-heading">
-                    <div>
-                        <h2>Platform management</h2>
-                        <p>Future administrative tools for VetPlatform.</p>
-                    </div>
-                </div>
-
-                <div class="admin-management-grid">
-                    <article>
-                        <span>👥</span>
-                        <h3>User management</h3>
-                        <p>View and manage platform accounts.</p>
-                        <small>Coming soon</small>
-                    </article>
-
-                    <article>
-                        <span>🩺</span>
-                        <h3>Veterinarian verification</h3>
-                        <p>Review professional registration and submitted evidence.</p>
-                        <small>Coming soon</small>
-                    </article>
-
-                    <article>
-                        <span>📊</span>
-                        <h3>Platform overview</h3>
-                        <p>View reliable platform statistics and activity.</p>
-                        <small>Coming soon</small>
-                    </article>
-                </div>
-            </section>
-
-            <footer class="admin-footer">
-                <p>VetPlatform · Administration workspace</p>
-            </footer>
+            <footer class="admin-footer"><p>VetPlatform · Administration workspace</p></footer>
         </div>
     </main>
 </div>
