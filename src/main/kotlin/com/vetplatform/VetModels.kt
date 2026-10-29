@@ -28,6 +28,19 @@ data class VetRegistrationResponse(
 data class VetVerificationStatusResponse(
     val userId: Long,
     val registrationNumber: String,
+    val verificationStatus: String,
+    val rejectionReason: String? = null
+)
+
+@Serializable
+data class VetReapplicationRequest(
+    val updateSummary: String
+)
+
+@Serializable
+data class VetReapplicationResponse(
+    val message: String,
+    val userId: Long,
     val verificationStatus: String
 )
 

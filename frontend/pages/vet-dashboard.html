@@ -122,13 +122,15 @@
                     <div>
                         <strong id="vet-verification-title">Status not loaded</strong>
                         <p id="vet-verification-description">
-                            Your real verification status will be retrieved from the backend in a later step.
+                            Loading your verification status.
                         </p>
+                        <p id="vet-verification-rejection" class="vet-note" hidden></p>
                     </div>
                 </div>
-                <p class="vet-note">
-                    This is currently a visual placeholder. It does not confirm that a veterinarian is verified.
-                </p>
+                <button id="vet-reapply-button" class="btn btn-primary" type="button" hidden>
+                    Resubmit application
+                </button>
+                <p id="vet-reapply-message" role="status" aria-live="polite"></p>
             </section>
 
 

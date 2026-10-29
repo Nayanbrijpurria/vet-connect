@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,6 +15,7 @@
         <nav class="admin-nav">
             <a class="admin-nav-link active" href="admin-dashboard.html">Overview</a>
             <a class="admin-nav-link" href="#applications">Veterinarian applications</a>
+            <a class="admin-nav-link" href="#accounts">Account management</a>
         </nav>
         <div class="admin-sidebar-bottom">
             <a class="admin-nav-link" href="index.html">Back to website</a>
@@ -64,6 +65,30 @@
                     Loading veterinarian applications...
                 </div>
                 <div id="vet-applications-list"></div>
+            </section>
+
+            <section class="admin-panel" id="accounts">
+                <div class="admin-section-heading">
+                    <div>
+                        <h2>Customer and veterinarian accounts</h2>
+                        <p>Disable account access or suspend a veterinarian's approval. Existing records are retained.</p>
+                    </div>
+                </div>
+                <form id="admin-account-search" class="admin-account-search">
+                    <label for="account-search-query">Search by name or email</label>
+                    <input id="account-search-query" type="search" maxlength="100" autocomplete="off">
+                    <label for="account-role-filter">Account type</label>
+                    <select id="account-role-filter">
+                        <option value="">All customers and veterinarians</option>
+                        <option value="CUSTOMER">Customers</option>
+                        <option value="VET">Veterinarians</option>
+                    </select>
+                    <button class="admin-refresh-button" type="submit">Search accounts</button>
+                </form>
+                <div id="admin-accounts-message" class="admin-queue-message" role="status" aria-live="polite">
+                    Search for an account to manage it.
+                </div>
+                <div id="admin-accounts-list"></div>
             </section>
 
             <footer class="admin-footer"><p>VetPlatform · Administration workspace</p></footer>

@@ -330,6 +330,14 @@ fun Route.configureRouting() {
                 return@post
             }
 
+            if (user.accountStatus != "ACTIVE") {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "This account has been disabled. Contact support for assistance.")
+                )
+                return@post
+            }
+
             // Step 3: Generate JWT
             val token = JwtService.generateToken(user)
 
@@ -804,6 +812,54 @@ fun Route.configureRouting() {
             }
         }
 
+        post("/api/vets/reapply") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject?.toLongOrNull()
+            val role = principal?.payload?.getClaim("role")?.asString()
+
+            if (userId == null || role.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized, AuthResponse("Invalid authentication token"))
+                return@post
+            }
+            if (role != "VET" || UserRepository.findRoleById(userId) != "VET") {
+                call.respond(HttpStatusCode.Forbidden, AuthResponse("Only veterinarians can resubmit an application"))
+                return@post
+            }
+
+            val request = try {
+                call.receive<VetReapplicationRequest>()
+            } catch (exception: Exception) {
+                call.respond(HttpStatusCode.BadRequest, AuthResponse("Invalid reapplication request"))
+                return@post
+            }
+            val summary = request.updateSummary.trim()
+            if (summary.isBlank() || summary.length > 500) {
+                call.respond(HttpStatusCode.BadRequest, AuthResponse("Describe your updates in 1 to 500 characters"))
+                return@post
+            }
+
+            try {
+                val submitted = VetRepository.resubmitRejectedApplication(userId, summary)
+                if (!submitted) {
+                    call.respond(HttpStatusCode.Conflict, AuthResponse("Only rejected applications can be resubmitted"))
+                } else {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        VetReapplicationResponse(
+                            message = "Your application has been resubmitted for review",
+                            userId = userId,
+                            verificationStatus = "PENDING"
+                        )
+                    )
+                }
+            } catch (exception: IllegalStateException) {
+                call.respond(HttpStatusCode.Conflict, AuthResponse(exception.message ?: "Upload updated credentials before resubmitting"))
+            } catch (exception: Exception) {
+                application.log.error("Veterinarian $userId failed to resubmit their application", exception)
+                call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to resubmit application"))
+            }
+        }
+
 
         get("/api/vets/profile") {
             val principal = call.principal<JWTPrincipal>()
@@ -943,6 +999,8 @@ fun Route.configureRouting() {
                     call.respond(HttpStatusCode.OK, updatedProfile)
                 }
 
+            } catch (exception: IllegalStateException) {
+                call.respond(HttpStatusCode.Conflict, AuthResponse(exception.message ?: "Profile cannot be updated in its current state"))
             } catch (exception: Exception) {
                 application.log.error(
                     "Failed to update veterinarian profile",
@@ -2052,6 +2110,7 @@ fun Route.configureRouting() {
 
         configureVetCredentialDocumentRoutes()
         configureAdminVetCredentialRoutes()
+        configureAdminAccountRoutes()
 
 
     }
@@ -2808,6 +2867,114 @@ private suspend fun io.ktor.server.routing.RoutingContext.reviewCredentialDocume
     } catch (exception: Exception) {
         call.application.log.error("Failed to review veterinarian credential as admin $adminId", exception)
         call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to review credential"))
+    }
+}
+
+private fun Route.configureAdminAccountRoutes() {
+    get("/api/admin/accounts") {
+        val adminId = call.adminIdOrRespond() ?: return@get
+        val search = call.request.queryParameters["search"]?.trim().orEmpty()
+        val requestedRole = call.request.queryParameters["role"]?.trim()?.uppercase()
+        val role = requestedRole?.takeIf { it.isNotEmpty() }
+
+        if (search.length > 100 || (role != null && role !in setOf("CUSTOMER", "VET"))) {
+            call.respond(HttpStatusCode.BadRequest, AuthResponse("Search must be at most 100 characters and role must be CUSTOMER or VET"))
+            return@get
+        }
+        try {
+            call.respond(
+                HttpStatusCode.OK,
+                AdminAccountListResponse(AdminRepository.searchAccounts(search, role))
+            )
+        } catch (exception: Exception) {
+            application.log.error("Admin $adminId failed to search accounts", exception)
+            call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to search accounts"))
+        }
+    }
+
+    put("/api/admin/accounts/{userId}/disable") {
+        updateAccount(enabled = false)
+    }
+    put("/api/admin/accounts/{userId}/enable") {
+        updateAccount(enabled = true)
+    }
+    put("/api/admin/vets/{userId}/suspend") {
+        updateVetSuspension(suspended = true)
+    }
+    put("/api/admin/vets/{userId}/reinstate") {
+        updateVetSuspension(suspended = false)
+    }
+}
+
+private suspend fun io.ktor.server.routing.RoutingContext.updateAccount(enabled: Boolean) {
+    val adminId = call.adminIdOrRespond() ?: return
+    val userId = call.parameters["userId"]?.toLongOrNull()
+    if (userId == null || userId <= 0) {
+        call.respond(HttpStatusCode.BadRequest, AuthResponse("A valid user ID is required"))
+        return
+    }
+
+    try {
+        val reason = call.receive<AdminAccountActionRequest>().reason.trim()
+        if (reason.isBlank() || reason.length > 500) {
+            call.respond(HttpStatusCode.BadRequest, AuthResponse("A reason of 1 to 500 characters is required"))
+            return
+        }
+        val account = AdminRepository.setAccountEnabled(userId, adminId, enabled, reason)
+        if (account == null) {
+            call.respond(HttpStatusCode.Conflict, AuthResponse("Account not found or already in that state"))
+        } else {
+            call.respond(
+                HttpStatusCode.OK,
+                AdminAccountActionResponse(
+                    message = if (enabled) "Account access restored" else "Account access disabled",
+                    account = account
+                )
+            )
+        }
+    } catch (exception: SecurityException) {
+        call.respond(HttpStatusCode.Forbidden, AuthResponse("Administrator access required"))
+    } catch (exception: IllegalArgumentException) {
+        call.respond(HttpStatusCode.Forbidden, AuthResponse(exception.message ?: "This account cannot be changed"))
+    } catch (exception: Exception) {
+        call.application.log.error("Admin $adminId failed to change account $userId", exception)
+        call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to change account access"))
+    }
+}
+
+private suspend fun io.ktor.server.routing.RoutingContext.updateVetSuspension(suspended: Boolean) {
+    val adminId = call.adminIdOrRespond() ?: return
+    val userId = call.parameters["userId"]?.toLongOrNull()
+    if (userId == null || userId <= 0) {
+        call.respond(HttpStatusCode.BadRequest, AuthResponse("A valid veterinarian user ID is required"))
+        return
+    }
+
+    try {
+        val reason = call.receive<AdminAccountActionRequest>().reason.trim()
+        if (reason.isBlank() || reason.length > 500) {
+            call.respond(HttpStatusCode.BadRequest, AuthResponse("A reason of 1 to 500 characters is required"))
+            return
+        }
+        val account = AdminRepository.setVetSuspended(userId, adminId, suspended, reason)
+        if (account == null) {
+            call.respond(HttpStatusCode.Conflict, AuthResponse("Veterinarian not found or already in that state"))
+        } else {
+            call.respond(
+                HttpStatusCode.OK,
+                AdminAccountActionResponse(
+                    message = if (suspended) "Veterinarian approval suspended" else "Veterinarian approval restored",
+                    account = account
+                )
+            )
+        }
+    } catch (exception: SecurityException) {
+        call.respond(HttpStatusCode.Forbidden, AuthResponse("Administrator access required"))
+    } catch (exception: IllegalStateException) {
+        call.respond(HttpStatusCode.Conflict, AuthResponse(exception.message ?: "Required credentials are not approved"))
+    } catch (exception: Exception) {
+        call.application.log.error("Admin $adminId failed to change veterinarian status for $userId", exception)
+        call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to change veterinarian status"))
     }
 }
 

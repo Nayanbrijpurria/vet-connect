@@ -16,7 +16,8 @@ data class LoginUser(
     val fullName: String,
     val email: String,
     val passwordHash: String,
-    val role: String
+    val role: String,
+    val accountStatus: String
 )
 
 object UserRepository {
@@ -73,7 +74,7 @@ object UserRepository {
         withContext(Dispatchers.IO) {
 
             val sql = """
-                SELECT id, full_name, email, password_hash, role
+                SELECT id, full_name, email, password_hash, role, account_status
                 FROM users
                 WHERE email = ?
             """.trimIndent()
@@ -89,7 +90,8 @@ object UserRepository {
                                 fullName = result.getString("full_name"),
                                 email = result.getString("email"),
                                 passwordHash = result.getString("password_hash"),
-                                role = result.getString("role")
+                                role = result.getString("role"),
+                                accountStatus = result.getString("account_status")
                             )
                         } else {
                             null
@@ -118,6 +120,19 @@ object UserRepository {
                         } else {
                             null
                         }
+                    }
+                }
+            }
+        }
+
+    suspend fun isAccountActive(userId: Long): Boolean =
+        withContext(Dispatchers.IO) {
+            val sql = "SELECT account_status FROM users WHERE id = ?"
+            DatabaseFactory.withConnection { connection ->
+                connection.prepareStatement(sql).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { result ->
+                        result.next() && result.getString("account_status") == "ACTIVE"
                     }
                 }
             }

@@ -725,3 +725,95 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+.admin-account-search {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(160px, 240px) auto;
+    align-items: end;
+    gap: 12px;
+}
+
+.admin-account-search label {
+    grid-row: 1;
+    font-size: .82rem;
+    font-weight: 650;
+}
+
+.admin-account-search input,
+.admin-account-search select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+}
+
+.admin-account-search label:nth-of-type(2) {
+    grid-column: 2;
+}
+
+.admin-account-search input {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.admin-account-search select {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.admin-account-search button {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.admin-account-card {
+    margin-top: 14px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    overflow-wrap: anywhere;
+}
+
+.admin-account-card h3 {
+    margin: 0 0 12px;
+}
+
+.account-disable-button,
+.account-suspend-button {
+    color: #9b1c1c !important;
+    background: #fde8e8 !important;
+}
+
+.account-enable-button {
+    color: #176534 !important;
+    background: #e1f5e8 !important;
+}
+
+@media (max-width: 760px) {
+    .admin-account-search {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-account-search label,
+    .admin-account-search label:nth-of-type(2),
+    .admin-account-search input,
+    .admin-account-search select,
+    .admin-account-search button {
+        grid-column: 1;
+        grid-row: auto;
+    }
+}
+
+.vet-reapplication-label {
+    display: inline-block;
+    margin: 0 0 12px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    color: #4c3f8e;
+    background: #eeebff;
+    font-size: .78rem;
+    font-weight: 700;
+}

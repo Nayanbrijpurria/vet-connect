@@ -82,8 +82,9 @@ FROM vet_profiles vp
 JOIN users u ON u.id = vp.user_id
 WHERE vp.user_id = ?
   AND u.role = 'VET'
+  AND u.account_status = 'ACTIVE'
   AND vp.verification_status = 'APPROVED'
-FOR UPDATE OF vp
+FOR UPDATE OF u, vp
 
 
                     """.trimIndent()

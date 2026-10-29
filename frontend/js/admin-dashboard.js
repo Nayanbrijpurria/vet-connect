@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     const token = sessionStorage.getItem("vetplatform_token");
     const role = sessionStorage.getItem("vetplatform_role");
     const messageElement = document.getElementById("vet-applications-message");
@@ -6,6 +6,11 @@
     const countElement = document.getElementById("pending-reviews-count");
     const logoutButton = document.getElementById("admin-logout");
     const refreshButton = document.getElementById("admin-refresh-applications");
+    const accountSearchForm = document.getElementById("admin-account-search");
+    const accountSearchInput = document.getElementById("account-search-query");
+    const accountRoleFilter = document.getElementById("account-role-filter");
+    const accountMessage = document.getElementById("admin-accounts-message");
+    const accountList = document.getElementById("admin-accounts-list");
 
     if (!token || role !== "ADMIN") {
         window.location.replace("login.html");
@@ -23,6 +28,10 @@
         window.location.replace("login.html");
     });
     refreshButton?.addEventListener("click", loadPendingApplications);
+    accountSearchForm?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        loadAccounts();
+    });
 
     const documentLabels = {
         DEGREE_CERTIFICATE: "Degree certificate",
@@ -245,6 +254,16 @@
                 const card = makeElement("article", "vet-application-card");
                 card.dataset.userId = application.userId;
                 card.appendChild(makeElement("h3", "", application.fullName || "Veterinarian application"));
+                if (application.submissionNumber > 1) {
+                    card.appendChild(makeElement(
+                        "p",
+                        "vet-reapplication-label",
+                        `Resubmitted application #${application.submissionNumber}`
+                    ));
+                    if (application.submissionSummary) {
+                        addDetail(card, "What changed", application.submissionSummary);
+                    }
+                }
                 addDetail(card, "Email", application.email);
                 addDetail(card, "Phone", application.phone);
                 addDetail(card, "Qualification", application.qualification);
@@ -280,6 +299,145 @@
             messageElement.textContent = error.message || "Unable to load veterinarian applications.";
         } finally {
             refreshButton.disabled = false;
+        }
+    }
+
+    async function changeAccount(userId, action, promptText) {
+        const reason = window.prompt(promptText);
+        if (reason === null) return;
+        const trimmedReason = reason.trim();
+        if (!trimmedReason || trimmedReason.length > 500) {
+            window.alert("Enter a reason of 1 to 500 characters.");
+            return;
+        }
+        if (!window.confirm("Confirm this account change? Account and medical records will be retained.")) return;
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/admin/${action.startsWith("vet-") ? "vets" : "accounts"}/${encodeURIComponent(userId)}/${action.replace("vet-", "")}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/json",
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ reason: trimmedReason })
+                }
+            );
+            await readJson(response);
+            await loadAccounts();
+        } catch (error) {
+            window.alert(error.message || "Unable to change this account.");
+        }
+    }
+
+    async function approveRejectedVet(userId, fullName) {
+        if (!window.confirm(
+            `Approve ${fullName || "this veterinarian"}? The required degree and registration documents must already be approved.`
+        )) return;
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/admin/vets/${encodeURIComponent(userId)}/approve`,
+                {
+                    method: "PUT",
+                    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+                }
+            );
+            await readJson(response);
+            await loadAccounts();
+        } catch (error) {
+            window.alert(error.message || "Unable to approve this veterinarian.");
+        }
+    }
+
+    async function loadAccounts() {
+        accountList.replaceChildren();
+        accountMessage.textContent = "Searching accounts...";
+        const params = new URLSearchParams();
+        const search = accountSearchInput.value.trim();
+        const roleFilter = accountRoleFilter.value;
+        if (search) params.set("search", search);
+        if (roleFilter) params.set("role", roleFilter);
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/admin/accounts?${params.toString()}`,
+                { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
+            );
+            const body = await readJson(response);
+            const accounts = Array.isArray(body.accounts) ? body.accounts : [];
+            if (accounts.length === 0) {
+                accountMessage.textContent = "No matching customer or veterinarian accounts.";
+                return;
+            }
+
+            accountMessage.textContent = accounts.length === 100
+                ? "Showing the 100 most recently created matching accounts. Refine your search to narrow the results."
+                : `${accounts.length} matching account(s).`;
+
+            accounts.forEach((account) => {
+                const card = makeElement("article", "admin-account-card");
+                card.appendChild(makeElement("h3", "", account.fullName));
+                addDetail(card, "Email", account.email);
+                addDetail(card, "Role", account.role === "VET" ? "Veterinarian" : "Customer");
+                addDetail(card, "Account access", account.accountStatus);
+                if (account.role === "VET") {
+                    addDetail(card, "Verification", account.verificationStatus || "No profile");
+                }
+
+                const actions = makeElement("div", "vet-application-actions");
+                const accessButton = makeElement(
+                    "button",
+                    account.accountStatus === "ACTIVE" ? "account-disable-button" : "account-enable-button",
+                    account.accountStatus === "ACTIVE" ? "Disable account" : "Restore account"
+                );
+                accessButton.type = "button";
+                accessButton.addEventListener("click", () => changeAccount(
+                    account.userId,
+                    account.accountStatus === "ACTIVE" ? "disable" : "enable",
+                    account.accountStatus === "ACTIVE"
+                        ? "Why should this account be disabled?"
+                        : "Why should access be restored?"
+                ));
+                actions.appendChild(accessButton);
+
+                if (account.role === "VET" && ["APPROVED", "SUSPENDED"].includes(account.verificationStatus)) {
+                    const isApproved = account.verificationStatus === "APPROVED";
+                    const statusButton = makeElement(
+                        "button",
+                        isApproved ? "account-suspend-button" : "account-enable-button",
+                        isApproved ? "Suspend veterinarian approval" : "Reinstate veterinarian"
+                    );
+                    statusButton.type = "button";
+                    statusButton.addEventListener("click", () => changeAccount(
+                        account.userId,
+                        isApproved ? "vet-suspend" : "vet-reinstate",
+                        isApproved
+                            ? "Why is this veterinarian's approval being suspended?"
+                            : "Why is this veterinarian being reinstated?"
+                    ));
+                    actions.appendChild(statusButton);
+                }
+
+                if (account.role === "VET" && account.verificationStatus === "REJECTED") {
+                    const approveRejectedButton = makeElement(
+                        "button",
+                        "account-enable-button",
+                        "Approve rejected application"
+                    );
+                    approveRejectedButton.type = "button";
+                    approveRejectedButton.addEventListener("click", () =>
+                        approveRejectedVet(account.userId, account.fullName)
+                    );
+                    actions.appendChild(approveRejectedButton);
+                }
+
+                card.appendChild(actions);
+                accountList.appendChild(card);
+            });
+        } catch (error) {
+            accountMessage.textContent = error.message || "Unable to search accounts.";
         }
     }
 

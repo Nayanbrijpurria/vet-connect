@@ -13,7 +13,9 @@ data class PendingVetResponse(
     val registrationNumber: String,
     val experienceYears: Int,
     val consultationFee: Double,
-    val verificationStatus: String
+    val verificationStatus: String,
+    val submissionNumber: Int = 1,
+    val submissionSummary: String? = null
 )
 
 @Serializable
@@ -56,4 +58,30 @@ data class CredentialReviewRequest(
 data class CredentialReviewResponse(
     val message: String,
     val document: AdminVetCredentialResponse
+)
+
+@Serializable
+data class AdminAccountResponse(
+    val userId: Long,
+    val fullName: String,
+    val email: String,
+    val role: String,
+    val accountStatus: String,
+    val verificationStatus: String?
+)
+
+@Serializable
+data class AdminAccountListResponse(
+    val accounts: List<AdminAccountResponse>
+)
+
+@Serializable
+data class AdminAccountActionRequest(
+    val reason: String
+)
+
+@Serializable
+data class AdminAccountActionResponse(
+    val message: String,
+    val account: AdminAccountResponse
 )

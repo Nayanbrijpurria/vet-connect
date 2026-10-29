@@ -32,6 +32,7 @@ object AppointmentAvailabilityRepository {
                     JOIN users u ON u.id = vp.user_id
                     WHERE vp.user_id = ?
                       AND u.role = 'VET'
+                      AND u.account_status = 'ACTIVE'
                       AND vp.verification_status = 'APPROVED'
                     """.trimIndent()
                 ).use { statement ->

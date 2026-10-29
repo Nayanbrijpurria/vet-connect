@@ -63,7 +63,9 @@ fun Application.configureApplication() {
                 if (userId != null &&
                     userId > 0 &&
                     !email.isNullOrBlank() &&
-                    !role.isNullOrBlank()
+                    !role.isNullOrBlank() &&
+                    runCatching { UserRepository.isAccountActive(userId) }
+                        .getOrDefault(false)
                 ) {
                     JWTPrincipal(credential.payload)
                 } else {

@@ -50,6 +50,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const shortStatus = document.getElementById(
             "vet-verification-short"
         );
+        const rejectionElement = document.getElementById("vet-verification-rejection");
+        const reapplyButton = document.getElementById("vet-reapply-button");
 
         try {
             const response = await fetch(
@@ -78,6 +80,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             title.textContent = readableStatus;
             shortStatus.textContent = readableStatus;
+            reapplyButton.hidden = status !== "REJECTED";
+            rejectionElement.hidden = status !== "REJECTED" || !data.rejectionReason;
+            rejectionElement.textContent = data.rejectionReason
+                ? `Administrator feedback: ${data.rejectionReason}`
+                : "";
 
             if (status === "APPROVED" || status === "VERIFIED") {
                 description.textContent =
@@ -88,17 +95,53 @@ document.addEventListener("DOMContentLoaded", function () {
             } else if (status === "REJECTED") {
                 description.textContent =
                     "Your application was rejected. Please review the information provided by the platform.";
+            } else if (status === "SUSPENDED") {
+                description.textContent =
+                    "Your veterinarian approval is currently suspended. Contact VetConnect support for more information.";
             } else {
                 description.textContent =
                     "This is the verification status returned by the server.";
             }
         } catch (error) {
+            reapplyButton.hidden = true;
+            rejectionElement.hidden = true;
             title.textContent = "Unable to load";
             shortStatus.textContent = "Unavailable";
             description.textContent =
                 "Verification status could not be retrieved.";
         }
     }
+
+    document.getElementById("vet-reapply-button").addEventListener("click", async () => {
+        const message = document.getElementById("vet-reapply-message");
+        const updateSummary = window.prompt(
+            "Briefly describe what you changed or improved before resubmitting (required):"
+        );
+        if (updateSummary === null) return;
+        const summary = updateSummary.trim();
+        if (!summary || summary.length > 500) {
+            message.textContent = "Enter a summary of 1 to 500 characters.";
+            return;
+        }
+
+        const button = document.getElementById("vet-reapply-button");
+        button.disabled = true;
+        message.textContent = "Submitting your application...";
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/vets/reapply`, {
+                method: "POST",
+                headers: { ...authHeaders, "Content-Type": "application/json" },
+                body: JSON.stringify({ updateSummary: summary })
+            });
+            const result = await readResponse(response);
+            message.textContent = result.message || "Application resubmitted for review.";
+            await loadVerificationStatus();
+        } catch (error) {
+            message.textContent = error.message || "Unable to resubmit your application.";
+        } finally {
+            button.disabled = false;
+        }
+    });
 
     // Display a value safely without interpreting it as HTML.
     function addDetail(container, label, value) {

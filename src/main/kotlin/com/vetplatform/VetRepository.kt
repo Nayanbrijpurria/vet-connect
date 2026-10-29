@@ -84,6 +84,16 @@ object VetRepository {
                     }
                 }
 
+                connection.prepareStatement(
+                    """INSERT INTO vet_application_history
+                       (vet_user_id, actor_user_id, action, to_status)
+                       VALUES (?, ?, 'SUBMITTED', 'PENDING')""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, user.id)
+                    statement.setLong(2, user.id)
+                    statement.executeUpdate()
+                }
+
                 connection.commit()
                 user
 
@@ -108,7 +118,8 @@ object VetRepository {
     ): VetVerificationStatusResponse? =
         withContext(Dispatchers.IO) {
             val sql = """
-                SELECT user_id, registration_number, verification_status
+                SELECT user_id, registration_number, verification_status,
+                       rejection_reason
                 FROM vet_profiles
                 WHERE user_id = ?
             """.trimIndent()
@@ -124,7 +135,8 @@ object VetRepository {
                                 registrationNumber =
                                     result.getString("registration_number"),
                                 verificationStatus =
-                                    result.getString("verification_status")
+                                    result.getString("verification_status"),
+                                rejectionReason = result.getString("rejection_reason")
                             )
                         } else {
                             null
@@ -194,6 +206,7 @@ object VetRepository {
                     JOIN vet_profiles vp ON vp.user_id = u.id
                     WHERE u.id = ?
                       AND u.role = 'VET'
+                      AND u.account_status = 'ACTIVE'
                       AND vp.verification_status = 'APPROVED'
                 )
             """.trimIndent()
@@ -221,6 +234,7 @@ object VetRepository {
             FROM users u
             JOIN vet_profiles vp ON vp.user_id = u.id
             WHERE u.role = 'VET'
+              AND u.account_status = 'ACTIVE'
               AND vp.verification_status = 'APPROVED'
             ORDER BY u.full_name ASC
         """.trimIndent()
@@ -265,6 +279,37 @@ object VetRepository {
                 try {
                     connection.autoCommit = false
 
+                    val currentProfile = connection.prepareStatement(
+                        """SELECT qualification, registration_number, verification_status
+                           FROM vet_profiles WHERE user_id = ? FOR UPDATE""".trimIndent()
+                    ).use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeQuery().use { result ->
+                            if (result.next()) Triple(
+                                result.getString("qualification"),
+                                result.getString("registration_number"),
+                                result.getString("verification_status")
+                            ) else null
+                        }
+                    }
+
+                    if (currentProfile == null) {
+                        connection.rollback()
+                        return@withConnection false
+                    }
+
+                    val professionalDetailsChanged =
+                        currentProfile.first != qualification.trim() ||
+                            currentProfile.second != registrationNumber.trim()
+                    if (
+                        professionalDetailsChanged &&
+                        currentProfile.third in setOf("APPROVED", "SUSPENDED")
+                    ) {
+                        throw IllegalStateException(
+                            "Approved professional credentials cannot be changed until an administrator reviews them"
+                        )
+                    }
+
                     val userSql = """
                     UPDATE users
                     SET full_name = ?, phone = ?
@@ -287,12 +332,7 @@ object VetRepository {
                         SET qualification = ?,
                             registration_number = ?,
                             experience_years = ?,
-                            consultation_fee = ?,
-                            verification_status = CASE
-                                WHEN registration_number <> ?
-                                THEN 'PENDING'
-                                ELSE verification_status
-                            END
+                            consultation_fee = ?
                         WHERE user_id = ?
                     """.trimIndent()
 
@@ -305,8 +345,7 @@ object VetRepository {
                                     4,
                                     java.math.BigDecimal.valueOf(consultationFee)
                                 )
-                                statement.setString(5, registrationNumber.trim())
-                                statement.setLong(6, userId)
+                                statement.setLong(5, userId)
                                 statement.executeUpdate()
                             }
 
@@ -335,6 +374,89 @@ object VetRepository {
             getVetProfile(userId)
         } else {
             null
+        }
+    }
+
+    suspend fun resubmitRejectedApplication(
+        userId: Long,
+        updateSummary: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        DatabaseFactory.withConnection { connection ->
+            val originalAutoCommit = connection.autoCommit
+            try {
+                connection.autoCommit = false
+
+                val currentStatus = connection.prepareStatement(
+                    """SELECT verification_status FROM vet_profiles
+                       WHERE user_id = ? FOR UPDATE""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { result ->
+                        if (result.next()) result.getString("verification_status") else null
+                    }
+                }
+
+                if (currentStatus != "REJECTED") {
+                    connection.rollback()
+                    return@withConnection false
+                }
+
+                val hasUsableRequiredDocuments = connection.prepareStatement(
+                    """SELECT
+                         COUNT(*) FILTER (WHERE document_type = 'DEGREE_CERTIFICATE' AND verification_status <> 'REJECTED') > 0
+                         AND COUNT(*) FILTER (WHERE document_type = 'REGISTRATION_CERTIFICATE' AND verification_status <> 'REJECTED') > 0
+                       FROM vet_credential_documents WHERE vet_user_id = ?""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { result -> result.next() && result.getBoolean(1) }
+                }
+
+                if (!hasUsableRequiredDocuments) {
+                    throw IllegalStateException(
+                        "Upload a degree certificate and a registration certificate that are not rejected before resubmitting"
+                    )
+                }
+
+                val updated = connection.prepareStatement(
+                    """UPDATE vet_profiles
+                       SET verification_status = 'PENDING',
+                           reviewed_by = NULL,
+                           reviewed_at = NULL,
+                           rejection_reason = NULL
+                       WHERE user_id = ? AND verification_status = 'REJECTED'""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate() == 1
+                }
+
+                if (!updated) {
+                    connection.rollback()
+                    return@withConnection false
+                }
+
+                connection.prepareStatement(
+                    """INSERT INTO vet_application_history
+                       (vet_user_id, actor_user_id, action, from_status, to_status, reason)
+                       VALUES (?, ?, 'RESUBMITTED', 'REJECTED', 'PENDING', ?)""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.setLong(2, userId)
+                    statement.setString(3, updateSummary)
+                    statement.executeUpdate()
+                }
+
+                connection.commit()
+                true
+            } catch (exception: Exception) {
+                try {
+                    connection.rollback()
+                } catch (rollbackException: Exception) {
+                    exception.addSuppressed(rollbackException)
+                }
+                throw exception
+            } finally {
+                connection.autoCommit = originalAutoCommit
+            }
         }
     }
 
