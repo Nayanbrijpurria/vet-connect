@@ -1,6 +1,7 @@
 
 document.addEventListener("DOMContentLoaded", function () {
     const petList = document.getElementById("pet-list");
+    const archivedPetList = document.getElementById("archived-pet-list");
     const petFormSection = document.getElementById("pet-form-section");
     const petForm = document.getElementById("pet-form");
     const petSearch = document.getElementById("pet-search");
@@ -23,6 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     let pets = [];
+    let archivedPets = [];
     let editingPetId = null;
     let isSaving = false;
 
@@ -203,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function () {
         recordsLink.className = "btn btn-secondary";
         recordsLink.href =
             `medical-records.html?petId=${encodeURIComponent(pet.id)}`;
-        recordsLink.textContent = "Medical records";
+        recordsLink.textContent = pet.archived ? "View medical history" : "Medical records";
 
         const editButton = document.createElement("button");
         editButton.type = "button";
@@ -228,16 +230,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const appointmentLink = document.createElement("a");
         appointmentLink.className = "btn btn-secondary";
         appointmentLink.href =
-            `appointments.html?petName=${encodeURIComponent(pet.name)}`;
+            `appointments.html?petId=${encodeURIComponent(pet.id)}`;
         appointmentLink.textContent = "Book appointment";
 
         const removeButton = document.createElement("button");
         removeButton.type = "button";
         removeButton.className = "btn btn-outline";
-        removeButton.textContent = "Remove";
+        removeButton.textContent = "Archive";
 
         removeButton.addEventListener("click", async function () {
-            if (!window.confirm(`Remove ${pet.name}?`)) return;
+            if (!window.confirm(`Archive ${pet.name}? Their medical history will be retained.`)) return;
 
             removeButton.disabled = true;
             hideMessage();
@@ -247,16 +249,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     method: "DELETE"
                 });
 
-                pets = pets.filter(item => String(item.id) !== String(pet.id));
-                renderPets();
-                showMessage(`${pet.name} was removed successfully.`);
+                await loadPets();
+                showMessage(`${pet.name} was archived. Their medical history is retained.`);
             } catch (error) {
                 showMessage(error.message || "Could not remove this pet.");
                 removeButton.disabled = false;
             }
         });
 
-        actions.append(recordsLink, editButton, appointmentLink, removeButton);
+        if (pet.archived) {
+            const archivedNotice = document.createElement("p");
+            archivedNotice.textContent = "Archived · booking and profile editing are disabled";
+            actions.append(recordsLink, archivedNotice);
+        } else {
+            actions.append(recordsLink, editButton, appointmentLink, removeButton);
+        }
         body.append(actions);
         card.append(top, body);
 
@@ -327,6 +334,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await apiRequest("/api/pets");
             pets = Array.isArray(data.pets) ? data.pets : [];
             renderPets();
+            const archivedData = await apiRequest("/api/pets/archived");
+            archivedPets = Array.isArray(archivedData.pets) ? archivedData.pets : [];
+            archivedPetList.replaceChildren();
+            if (!archivedPets.length) archivedPetList.textContent = "No archived pets.";
+            else archivedPets.forEach(pet => archivedPetList.append(createPetCard({ ...pet, archived: true })));
         } catch (error) {
             petList.replaceChildren();
             petSummary.textContent = "Unable to load pets";

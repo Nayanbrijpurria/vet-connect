@@ -199,3 +199,109 @@ Help me build VetConnect in a sensible sequence:
 Treat this as a roadmap, not a requirement to implement everything immediately.
 
 **Primary principle:** Think like a CTO responsible for a real startup. Prioritize customer safety, security, correctness, maintainability and sustainable growth over simply adding more features quickly.
+
+## 10. Kotlin Coroutines and Performance Engineering
+
+Coroutines must be used appropriately throughout the VetConnect Kotlin/Ktor backend.
+
+### Core principles
+
+1. Prefer Kotlin Coroutines and suspend functions for asynchronous backend operations.
+2. Use `suspend` functions for database, network and service operations wherever supported by the existing architecture.
+3. Use `Dispatchers.IO` for blocking I/O operations.
+4. Use `Dispatchers.Default` for CPU-intensive operations such as data processing, calculations and computational tasks.
+5. Avoid running CPU-intensive operations on the main request-processing thread.
+6. Never use `Dispatchers.IO` as a default solution for CPU-intensive work.
+7. Avoid unnecessary thread creation and excessive coroutine launching.
+8. Use structured concurrency and appropriate coroutine scopes.
+9. Avoid `GlobalScope`.
+10. Handle coroutine cancellation and exceptions correctly.
+11. Do not introduce unnecessary concurrency where sequential execution is safer or more efficient.
+12. Use connection pooling and efficient database queries instead of creating unnecessary database connections.
+13. Avoid blocking calls inside suspend functions.
+14. Do not use `runBlocking` in normal production request-handling code.
+
+### Ktor-specific requirements
+
+- Use Ktor's coroutine-friendly request handling.
+- Prefer suspend repository and service methods.
+- Ensure database operations do not block request-processing threads.
+- Use appropriate transaction management.
+- Do not launch background coroutines without proper lifecycle management.
+- Use bounded concurrency when processing multiple tasks.
+
+### Performance and scalability
+
+Before implementing a feature, consider:
+- CPU utilisation
+- Memory consumption
+- Database connection usage
+- Number of concurrent requests
+- Response time
+- Scalability under multiple users
+
+Do not introduce coroutines just for the sake of using them. Choose the correct execution strategy based on whether the task is CPU-intensive, I/O-intensive or a combination of both.
+
+### Important implementation rule
+
+Before modifying existing code, inspect its current coroutine usage and architecture. Preserve working functionality and avoid unnecessary rewrites.
+
+The goal is to build a responsive, efficient, scalable and production-ready Kotlin/Ktor backend.
+
+
+# STRICT DEVELOPMENT RULES FOR VET CONNECT
+
+You are working on an existing production-oriented veterinary platform built with Kotlin, Ktor, PostgreSQL, HTML, CSS and JavaScript.
+
+Your priority is to preserve all existing functionality while implementing the requested feature.
+
+## 1. Analyse before modifying
+- Read the relevant existing files before making changes.
+- Understand the existing architecture, dependencies and coding patterns.
+- Identify all files and features that may be affected.
+- Check whether the requested functionality already exists.
+- Do not assume how existing functionality works.
+
+## 2. Never break existing features
+- Do not rewrite working modules unnecessarily.
+- Do not modify unrelated files.
+- Do not change existing API contracts without explicit approval.
+- Do not rename existing database columns, routes, functions or classes without necessity.
+- Preserve existing authentication, authorization and role permissions.
+- Do not remove existing functionality to implement a new feature.
+
+## 3. Follow a controlled workflow
+Before writing code:
+1. Explain your understanding of the requirement.
+2. Identify the files that need modification.
+3. Explain potential side effects.
+4. Propose an implementation plan.
+5. Identify existing tests that must continue passing.
+
+Wait for my approval before implementing significant architectural changes.
+
+## 4. Database protection
+- Inspect existing database migrations before proposing new ones.
+- Never delete or modify existing production data.
+- Prefer backward-compatible migrations.
+- Never change the database schema unnecessarily.
+- Preserve existing relationships and constraints.
+
+## 5. Testing requirements
+After implementation:
+- Compile the backend.
+- Run relevant unit and integration tests.
+- Test the affected API endpoints.
+- Check authentication and authorization.
+- Verify existing related features still work.
+- Report any tests that could not be executed.
+
+## 6. Final report
+Tell me:
+- Which files were modified.
+- What changes were made.
+- Which existing features could be affected.
+- Which tests passed and failed.
+- Any remaining risks.
+
+IMPORTANT: A feature is not complete simply because the new functionality works. Existing functionality must continue working too.

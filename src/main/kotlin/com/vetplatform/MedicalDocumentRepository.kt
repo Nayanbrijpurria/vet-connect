@@ -21,6 +21,147 @@ data class MedicalDocumentRecord(
 
 class MedicalDocumentRepository {
 
+    suspend fun getDocumentsForConfirmedVetAppointment(
+        vetUserId: Long,
+        appointmentId: Long
+    ): List<MedicalDocumentRecord> {
+        require(vetUserId > 0 && appointmentId > 0) { "Invalid veterinarian or appointment ID" }
+
+        return DatabaseFactory.withConnection { connection ->
+            val previousAutoCommit = connection.autoCommit
+            try {
+                connection.autoCommit = false
+                val petId = findPetForConfirmedVetAppointment(connection, vetUserId, appointmentId)
+                val sql = """
+                    SELECT id, pet_id, consultation_id, uploaded_by, document_type,
+                           original_filename, storage_key, mime_type, file_size_bytes,
+                           processing_status, uploaded_at
+                    FROM medical_documents
+                    WHERE pet_id = ?
+                    ORDER BY uploaded_at DESC, id DESC
+                """.trimIndent()
+
+                val documents = connection.prepareStatement(sql).use { statement ->
+                    statement.setLong(1, petId)
+                    statement.executeQuery().use { result ->
+                        buildList {
+                            while (result.next()) add(result.toMedicalDocumentRecord())
+                        }
+                    }
+                }
+
+                connection.prepareStatement(
+                    """INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, details)
+                       VALUES (?, 'VET_VIEW_PATIENT_MEDICAL_RECORDS', 'APPOINTMENT', ?,
+                               jsonb_build_object('petId', ?))""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetUserId)
+                    statement.setLong(2, appointmentId)
+                    statement.setLong(3, petId)
+                    statement.executeUpdate()
+                }
+
+                connection.commit()
+                documents
+            } catch (exception: Exception) {
+                try { connection.rollback() } catch (rollbackException: Exception) {
+                    exception.addSuppressed(rollbackException)
+                }
+                throw exception
+            } finally {
+                connection.autoCommit = previousAutoCommit
+            }
+        }
+    }
+
+    suspend fun getDocumentForConfirmedVetAppointment(
+        vetUserId: Long,
+        appointmentId: Long,
+        documentId: Long
+    ): MedicalDocumentRecord? {
+        require(vetUserId > 0 && appointmentId > 0 && documentId > 0) {
+            "Invalid veterinarian, appointment or document ID"
+        }
+
+        return DatabaseFactory.withConnection { connection ->
+            val previousAutoCommit = connection.autoCommit
+            try {
+                connection.autoCommit = false
+                val petId = findPetForConfirmedVetAppointment(connection, vetUserId, appointmentId)
+                val sql = """
+                    SELECT id, pet_id, consultation_id, uploaded_by, document_type,
+                           original_filename, storage_key, mime_type, file_size_bytes,
+                           processing_status, uploaded_at
+                    FROM medical_documents
+                    WHERE id = ? AND pet_id = ?
+                """.trimIndent()
+
+                val document = connection.prepareStatement(sql).use { statement ->
+                    statement.setLong(1, documentId)
+                    statement.setLong(2, petId)
+                    statement.executeQuery().use { result ->
+                        if (result.next()) result.toMedicalDocumentRecord() else null
+                    }
+                }
+
+                if (document == null) {
+                    connection.rollback()
+                    return@withConnection null
+                }
+
+                connection.prepareStatement(
+                    """INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, details)
+                       VALUES (?, 'VET_DOWNLOAD_PATIENT_MEDICAL_DOCUMENT', 'MEDICAL_DOCUMENT', ?,
+                               jsonb_build_object('appointmentId', ?, 'petId', ?))""".trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetUserId)
+                    statement.setLong(2, documentId)
+                    statement.setLong(3, appointmentId)
+                    statement.setLong(4, petId)
+                    statement.executeUpdate()
+                }
+
+                connection.commit()
+                document
+            } catch (exception: Exception) {
+                try { connection.rollback() } catch (rollbackException: Exception) {
+                    exception.addSuppressed(rollbackException)
+                }
+                throw exception
+            } finally {
+                connection.autoCommit = previousAutoCommit
+            }
+        }
+    }
+
+    private fun findPetForConfirmedVetAppointment(
+        connection: Connection,
+        vetUserId: Long,
+        appointmentId: Long
+    ): Long {
+        val sql = """
+            SELECT a.pet_id
+            FROM appointments a
+            JOIN vet_profiles vp ON vp.id = a.vet_profile_id
+            JOIN users u ON u.id = vp.user_id
+            WHERE a.id = ?
+              AND vp.user_id = ?
+              AND a.status IN ('CONFIRMED', 'COMPLETED')
+              AND vp.verification_status = 'APPROVED'
+              AND u.account_status = 'ACTIVE'
+            FOR SHARE OF a, vp, u
+        """.trimIndent()
+
+        return connection.prepareStatement(sql).use { statement ->
+            statement.setLong(1, appointmentId)
+            statement.setLong(2, vetUserId)
+            statement.executeQuery().use { result ->
+                if (result.next()) result.getLong("pet_id")
+                else throw SecurityException("Confirmed appointment access is required")
+            }
+        }
+    }
+
     /**
      * Saves metadata for a file that has already been stored locally.
      *
@@ -190,6 +331,7 @@ class MedicalDocumentRepository {
                     ON p.id = md.pet_id
                 WHERE p.id = ?
                   AND p.owner_id = ?
+                  AND p.archived_at IS NULL
                 ORDER BY md.uploaded_at DESC, md.id DESC
             """.trimIndent()
 
@@ -275,6 +417,7 @@ class MedicalDocumentRepository {
                 FROM pets p
                 WHERE p.id = ?
                   AND p.owner_id = ?
+                  AND p.archived_at IS NULL
                   AND (
                       ? IS NULL
                       OR EXISTS (

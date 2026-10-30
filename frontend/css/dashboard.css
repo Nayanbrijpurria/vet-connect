@@ -841,6 +841,20 @@ css
     gap: 12px;
 }
 
+.medical-history-section {
+    display: grid;
+    gap: 10px;
+    margin: 18px 0;
+}
+.medical-history-section > h3 {
+    margin: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.medical-history-section .medical-record-card {
+    white-space: pre-line;
+}
+
 .medical-record-card {
     display: flex;
     align-items: center;

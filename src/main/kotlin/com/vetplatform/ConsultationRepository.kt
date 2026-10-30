@@ -20,6 +20,9 @@ object ConsultationRepository {
         require(request.appointmentId > 0) {
             "A valid appointment ID is required"
         }
+        require(listOf(request.chiefComplaint, request.clinicalNotes, request.diagnosis, request.treatmentNotes, request.followUpNotes).any { !it.isNullOrBlank() }) {
+            "At least one consultation field must be completed"
+        }
 
         DatabaseFactory.withConnection { connection ->
             val originalAutoCommit = connection.autoCommit
@@ -39,7 +42,10 @@ object ConsultationRepository {
                     FROM appointments a
                     JOIN vet_profiles vp
                         ON vp.id = a.vet_profile_id
+                    JOIN users u ON u.id = vp.user_id
                     WHERE a.id = ?
+                      AND vp.verification_status = 'APPROVED'
+                      AND u.account_status = 'ACTIVE'
                     FOR UPDATE OF a
                     """.trimIndent()
                 ).use { statement ->
@@ -124,6 +130,11 @@ object ConsultationRepository {
                             }
                         }
                     }
+                }
+
+                connection.prepareStatement("""INSERT INTO audit_logs(actor_user_id, action, entity_type, entity_id, details)
+                    VALUES (?, 'VET_CREATE_CONSULTATION', 'CONSULTATION', ?, jsonb_build_object('appointmentId', ?, 'petId', ?))""").use { audit ->
+                    audit.setLong(1, vetUserId); audit.setLong(2, consultation.id); audit.setLong(3, consultation.appointmentId); audit.setLong(4, consultation.petId); audit.executeUpdate()
                 }
 
                 connection.commit()

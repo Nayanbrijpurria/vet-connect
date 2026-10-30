@@ -21,7 +21,10 @@ data class AppointmentResponse(
     val scheduledEnd: String,
     val status: String,
     val consultationFee: Double,
-    val meetingUrl: String? = null
+    val meetingUrl: String? = null,
+    val petName: String? = null,
+    val petSpecies: String? = null,
+    val customerName: String? = null
 )
 
 @Serializable

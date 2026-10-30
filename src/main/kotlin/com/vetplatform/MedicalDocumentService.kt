@@ -111,6 +111,12 @@ class MedicalDocumentService(
         )
     }
 
+    suspend fun getDocumentsForConfirmedVetAppointment(
+        vetUserId: Long,
+        appointmentId: Long
+    ): List<MedicalDocumentRecord> =
+        repository.getDocumentsForConfirmedVetAppointment(vetUserId, appointmentId)
+
 
     suspend fun downloadDocumentForPetOwner(
         ownerUserId: Long,
@@ -125,6 +131,20 @@ class MedicalDocumentService(
         val bytes = storage.read(document.storageKey)
 
         return document to bytes
+    }
+
+    suspend fun downloadDocumentForConfirmedVetAppointment(
+        vetUserId: Long,
+        appointmentId: Long,
+        documentId: Long
+    ): Pair<MedicalDocumentRecord, ByteArray>? {
+        val document = repository.getDocumentForConfirmedVetAppointment(
+            vetUserId = vetUserId,
+            appointmentId = appointmentId,
+            documentId = documentId
+        ) ?: return null
+
+        return document to storage.read(document.storageKey)
     }
 
 

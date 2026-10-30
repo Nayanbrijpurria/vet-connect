@@ -51,7 +51,7 @@ object AppointmentRepository {
                     """
                     SELECT id
                     FROM pets
-                    WHERE id = ? AND owner_id = ?
+                    WHERE id = ? AND owner_id = ? AND archived_at IS NULL
                     FOR UPDATE
                     """.trimIndent()
                 ).use { statement ->
@@ -432,9 +432,14 @@ FOR UPDATE OF u, vp
                     a.scheduled_end,
                     a.status,
                     a.consultation_fee,
-                    a.meeting_url
+                    a.meeting_url,
+                    p.name AS pet_name,
+                    p.species AS pet_species,
+                    customer.full_name AS customer_name
                 FROM appointments a
                 JOIN vet_profiles vp ON vp.id = a.vet_profile_id
+                JOIN pets p ON p.id = a.pet_id
+                JOIN users customer ON customer.id = a.customer_id
                 WHERE vp.user_id = ?
                 ORDER BY a.scheduled_start DESC
                 """.trimIndent()
@@ -464,7 +469,10 @@ FOR UPDATE OF u, vp
                                 consultationFee = rs.getBigDecimal(
                                     "consultation_fee"
                                 ).toDouble(),
-                                meetingUrl = rs.getString("meeting_url")
+                                meetingUrl = rs.getString("meeting_url"),
+                                petName = rs.getString("pet_name"),
+                                petSpecies = rs.getString("pet_species"),
+                                customerName = rs.getString("customer_name")
                             )
                         )
                     }

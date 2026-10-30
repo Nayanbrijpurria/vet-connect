@@ -720,3 +720,107 @@
     margin-top: 0.75rem;
 }
 
+
+.vet-patient-records {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.vet-patient-records h4 {
+    margin: 0 0 8px;
+    font-size: .95rem;
+}
+
+.vet-patient-records-message {
+    color: var(--text-secondary);
+}
+
+.vet-patient-records-button,
+.vet-patient-record-item button {
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 13px;
+    background: var(--primary, #5364c4);
+    color: white;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.vet-patient-records button:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+.vet-patient-record-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    align-items: center;
+    margin-top: 9px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #fff;
+    overflow-wrap: anywhere;
+}
+
+.vet-patient-record-item span {
+    color: var(--text-secondary);
+    font-size: .8rem;
+}
+
+.vet-patient-record-item strong,
+.vet-patient-record-item span { white-space: pre-line; }
+
+.vet-consultation-form {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.vet-consultation-form label { font-weight: 650; }
+.vet-consultation-form input,
+.vet-consultation-form textarea,
+.vet-consultation-form select {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font: inherit;
+}
+.vet-consultation-form textarea { min-height: 76px; resize: vertical; }
+.vet-consultation-form button {
+    justify-self: start;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 13px;
+    background: var(--primary, #5364c4);
+    color: white;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.vet-patient-record-item button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+}
+
+@media (max-width: 540px) {
+    .vet-patient-record-item {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vet-patient-record-item button {
+        grid-column: 1;
+        grid-row: auto;
+        justify-self: start;
+    }
+}

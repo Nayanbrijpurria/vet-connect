@@ -57,8 +57,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function readJson(response) {
         let body = {};
-        try { body = await response.json(); } catch (_) { /* empty response */ }
-        if (!response.ok) throw new Error(body.message || "The request failed.");
+        const responseText = await response.text();
+        if (responseText) {
+            try { body = JSON.parse(responseText); } catch (_) { /* non-JSON response */ }
+        }
+        if (!response.ok) {
+            if (response.status === 401) {
+                ["vetplatform_token", "vetplatform_role", "vetplatform_email", "vetplatform_user_id"]
+                    .forEach((key) => sessionStorage.removeItem(key));
+                sessionStorage.setItem(
+                    "vetplatform_auth_notice",
+                    "Your admin session expired or is no longer valid. Please sign in again."
+                );
+                window.location.replace("login.html");
+                throw new Error("Your session expired. Redirecting to sign in...");
+            }
+            throw new Error(body.message || body.error || `Request failed (HTTP ${response.status}).`);
+        }
         return body;
     }
 

@@ -1,5 +1,13 @@
 
 const loginForm = document.getElementById("login-form");
+const loginMessage = document.getElementById("login-message");
+const authNotice = sessionStorage.getItem("vetplatform_auth_notice");
+
+if (authNotice && loginMessage) {
+    loginMessage.textContent = authNotice;
+    loginMessage.classList.remove("hidden");
+    sessionStorage.removeItem("vetplatform_auth_notice");
+}
 
 if (loginForm) {
     loginForm.addEventListener("submit", async function (event) {

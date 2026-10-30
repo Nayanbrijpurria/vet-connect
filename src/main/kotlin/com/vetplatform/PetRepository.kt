@@ -83,7 +83,7 @@ object PetRepository {
             SELECT id, owner_id, name, species, breed,
                    date_of_birth, weight_kg, notes
             FROM pets
-            WHERE owner_id = ?
+            WHERE owner_id = ? AND archived_at IS NULL
             ORDER BY id DESC
         """.trimIndent()
 
@@ -102,6 +102,16 @@ object PetRepository {
         }
     }
 
+    suspend fun findArchivedPetsByOwner(ownerId: Long): List<PetResponse> = withContext(Dispatchers.IO) {
+        DatabaseFactory.withConnection { connection ->
+            connection.prepareStatement("""SELECT id, owner_id, name, species, breed, date_of_birth, weight_kg, notes
+                FROM pets WHERE owner_id = ? AND archived_at IS NOT NULL ORDER BY archived_at DESC""").use { ps ->
+                ps.setLong(1, ownerId)
+                ps.executeQuery().use { rs -> buildList { while (rs.next()) add(mapPet(rs)) } }
+            }
+        }
+    }
+
     suspend fun findPetById(
         ownerId: Long,
         petId: Long
@@ -110,7 +120,7 @@ object PetRepository {
             SELECT id, owner_id, name, species, breed,
                    date_of_birth, weight_kg, notes
             FROM pets
-            WHERE id = ? AND owner_id = ?
+            WHERE id = ? AND owner_id = ? AND archived_at IS NULL
         """.trimIndent()
 
         DatabaseFactory.withConnection { connection ->
@@ -138,7 +148,7 @@ object PetRepository {
                 date_of_birth = ?,
                 weight_kg = ?,
                 notes = ?
-            WHERE id = ? AND owner_id = ?
+            WHERE id = ? AND owner_id = ? AND archived_at IS NULL
             RETURNING id, owner_id, name, species, breed,
                       date_of_birth, weight_kg, notes
         """.trimIndent()
@@ -179,20 +189,32 @@ object PetRepository {
         }
     }
 
-    suspend fun deletePet(
+    suspend fun archivePet(
         ownerId: Long,
         petId: Long
     ): Boolean = withContext(Dispatchers.IO) {
         val sql = """
-            DELETE FROM pets
-            WHERE id = ? AND owner_id = ?
+            UPDATE pets SET archived_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND owner_id = ? AND archived_at IS NULL
         """.trimIndent()
 
         DatabaseFactory.withConnection { connection ->
-            connection.prepareStatement(sql).use { statement ->
-                statement.setLong(1, petId)
-                statement.setLong(2, ownerId)
-                statement.executeUpdate() > 0
+            val old = connection.autoCommit
+            try {
+                connection.autoCommit = false
+                val archived = connection.prepareStatement(sql).use { statement ->
+                    statement.setLong(1, petId); statement.setLong(2, ownerId); statement.executeUpdate() > 0
+                }
+                if (!archived) { connection.rollback(); return@withConnection false }
+                connection.prepareStatement("INSERT INTO audit_logs(actor_user_id, action, entity_type, entity_id) VALUES (?, 'CUSTOMER_ARCHIVE_PET', 'PET', ?)").use { audit ->
+                    audit.setLong(1, ownerId); audit.setLong(2, petId); audit.executeUpdate()
+                }
+                connection.commit(); true
+            } catch (e: Exception) {
+                try { connection.rollback() } catch (rollback: Exception) { e.addSuppressed(rollback) }
+                throw e
+            } finally {
+                connection.autoCommit = old
             }
         }
     }

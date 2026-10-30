@@ -25,6 +25,9 @@ import io.ktor.http.content.forEachPart
 import io.ktor.server.response.header
 import io.ktor.server.response.respondBytes
 import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.CancellationException
+
+private const val MULTIPART_LIMIT_BUFFER_BYTES = 64L * 1024L
 
 fun Route.configureRouting() {
 
@@ -1273,6 +1276,15 @@ fun Route.configureRouting() {
             }
         }
 
+        get("/api/pets/archived") {
+            val ownerId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            if (ownerId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@get }
+            try {
+                if (UserRepository.findRoleById(ownerId) != "CUSTOMER") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only customers can view archived pets")); return@get }
+                call.respond(HttpStatusCode.OK, PetListResponse(PetRepository.findArchivedPetsByOwner(ownerId)))
+            } catch (e: Exception) { application.log.error("Failed to retrieve archived pets", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to retrieve archived pets")) }
+        }
+
         post("/api/pets") {
             val principal = call.principal<JWTPrincipal>()
             val ownerId = principal?.payload?.subject?.toLongOrNull()
@@ -1418,6 +1430,23 @@ fun Route.configureRouting() {
             }
         }
 
+        get("/api/pets/{id}/medical-history") {
+            val ownerId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val petId = call.parameters["id"]?.toLongOrNull()
+            if (ownerId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@get }
+            if (petId == null || petId <= 0) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid pet ID is required")); return@get }
+            try {
+                if (UserRepository.findRoleById(ownerId) != "CUSTOMER") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only customers can view pet medical history")); return@get }
+                call.response.header("Cache-Control", "private, no-store")
+                call.respond(HttpStatusCode.OK, PetMedicalHistoryRepository.getForOwner(ownerId, petId))
+            } catch (e: SecurityException) {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Pet not found"))
+            } catch (e: Exception) {
+                application.log.error("Failed to load medical history for pet $petId", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to retrieve pet medical history"))
+            }
+        }
+
         // Update one pet belonging to the logged-in customer
         put("/api/pets/{id}") {
             val ownerId = call.principal<JWTPrincipal>()
@@ -1540,12 +1569,12 @@ fun Route.configureRouting() {
             }
 
             try {
-                val deleted = PetRepository.deletePet(ownerId, petId)
+                val deleted = PetRepository.archivePet(ownerId, petId)
 
                 if (deleted) {
                     call.respond(
                         HttpStatusCode.OK,
-                        AuthResponse(message = "Pet deleted successfully")
+                        AuthResponse(message = "Pet archived successfully. Its medical history has been retained.")
                     )
                 } else {
                     call.respond(
@@ -1792,6 +1821,25 @@ fun Route.configureRouting() {
             }
         }
 
+        get("/api/vets/appointments/{id}/medical-history") {
+            val vetUserId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val appointmentId = call.parameters["id"]?.toLongOrNull()
+            if (vetUserId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@get }
+            if (appointmentId == null || appointmentId <= 0) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid appointment ID is required")); return@get }
+            try {
+                if (UserRepository.findRoleById(vetUserId) != "VET" || !VetRepository.isVetApproved(vetUserId)) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "An approved veterinarian account is required")); return@get
+                }
+                call.response.header("Cache-Control", "private, no-store")
+                call.respond(HttpStatusCode.OK, PetMedicalHistoryRepository.getForVetAppointment(vetUserId, appointmentId))
+            } catch (e: SecurityException) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "An upcoming or completed appointment assigned to you is required"))
+            } catch (e: Exception) {
+                application.log.error("Failed to load appointment pet history for vet $vetUserId", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to retrieve pet medical history"))
+            }
+        }
+
         // Update the status of an appointment assigned to this veterinarian.
         patch("/api/vets/appointments/{id}/status") {
             val vetUserId = call.principal<JWTPrincipal>()
@@ -1995,6 +2043,80 @@ fun Route.configureRouting() {
             }
         }
 
+        post("/api/vets/consultations/{id}/amendments") {
+            val vetId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val consultationId = call.parameters["id"]?.toLongOrNull()
+            if (vetId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@post }
+            if (consultationId == null || consultationId <= 0) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid consultation ID is required")); return@post }
+            try {
+                if (UserRepository.findRoleById(vetId) != "VET") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can amend consultations")); return@post }
+                val id = PetHealthWriteRepository.addConsultationAmendment(vetId, consultationId, call.receive<CreateConsultationAmendmentRequest>())
+                call.respond(HttpStatusCode.Created, mapOf("id" to id, "message" to "Consultation amendment recorded"))
+            } catch (e: SecurityException) { call.respond(HttpStatusCode.Forbidden, mapOf("error" to (e.message ?: "Not authorized"))) }
+            catch (e: IllegalArgumentException) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid amendment"))) }
+            catch (e: Exception) { application.log.error("Failed to append consultation amendment", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to record amendment")) }
+        }
+
+        post("/api/vets/consultations/{id}/prescriptions") {
+            val vetId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            if (vetId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@post }
+            try {
+                if (UserRepository.findRoleById(vetId) != "VET") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can issue prescriptions")); return@post }
+                val id = PetHealthWriteRepository.createPrescription(vetId, call.receive<CreatePrescriptionRequest>())
+                call.respond(HttpStatusCode.Created, mapOf("id" to id, "message" to "Prescription issued"))
+            } catch (e: SecurityException) { call.respond(HttpStatusCode.Forbidden, mapOf("error" to (e.message ?: "Not authorized"))) }
+            catch (e: IllegalArgumentException) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid prescription"))) }
+            catch (e: java.sql.SQLException) { if (e.sqlState == "23505") call.respond(HttpStatusCode.Conflict, mapOf("error" to "Prescription number already exists")) else { application.log.error("Failed to issue prescription", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to issue prescription")) } }
+            catch (e: Exception) { application.log.error("Failed to issue prescription", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to issue prescription")) }
+        }
+
+        post("/api/vets/appointments/{id}/allergies") {
+            val vetId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull(); val appointmentId = call.parameters["id"]?.toLongOrNull()
+            if (vetId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@post }
+            if (appointmentId == null || appointmentId <= 0) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Valid appointment ID required")); return@post }
+            try { if (UserRepository.findRoleById(vetId) != "VET") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Veterinarian role required")); return@post }; val id = PetHealthWriteRepository.addAllergy(vetId, appointmentId, call.receive<CreatePetHealthFactRequest>()); call.respond(HttpStatusCode.Created, mapOf("id" to id)) }
+            catch (e: SecurityException) { call.respond(HttpStatusCode.Forbidden, mapOf("error" to (e.message ?: "Not authorized"))) }
+            catch (e: IllegalArgumentException) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid allergy"))) }
+            catch (e: Exception) { application.log.error("Failed to save pet allergy", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to save allergy")) }
+        }
+
+        post("/api/vets/appointments/{id}/conditions") {
+            val vetId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull(); val appointmentId = call.parameters["id"]?.toLongOrNull()
+            if (vetId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@post }
+            if (appointmentId == null || appointmentId <= 0) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Valid appointment ID required")); return@post }
+            try { if (UserRepository.findRoleById(vetId) != "VET") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Veterinarian role required")); return@post }; val id = PetHealthWriteRepository.addCondition(vetId, appointmentId, call.receive<CreatePetHealthFactRequest>()); call.respond(HttpStatusCode.Created, mapOf("id" to id)) }
+            catch (e: SecurityException) { call.respond(HttpStatusCode.Forbidden, mapOf("error" to (e.message ?: "Not authorized"))) }
+            catch (e: IllegalArgumentException) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid condition"))) }
+            catch (e: Exception) { application.log.error("Failed to save pet condition", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to save condition")) }
+        }
+
+        post("/api/vets/appointments/{id}/vaccinations") {
+            val vetId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull(); val appointmentId = call.parameters["id"]?.toLongOrNull()
+            if (vetId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@post }
+            if (appointmentId == null || appointmentId <= 0) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Valid appointment ID required")); return@post }
+            try { if (UserRepository.findRoleById(vetId) != "VET") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Veterinarian role required")); return@post }; val id = PetHealthWriteRepository.addVaccination(vetId, appointmentId, call.receive<CreateVaccinationRequest>()); call.respond(HttpStatusCode.Created, mapOf("id" to id)) }
+            catch (e: SecurityException) { call.respond(HttpStatusCode.Forbidden, mapOf("error" to (e.message ?: "Not authorized"))) }
+            catch (e: IllegalArgumentException) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid vaccination"))) }
+            catch (e: Exception) { application.log.error("Failed to save vaccination", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to save vaccination")) }
+        }
+
+        patch("/api/vets/appointments/{id}/{type}/{recordId}/status") {
+            val vetId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val appointmentId = call.parameters["id"]?.toLongOrNull()
+            val recordId = call.parameters["recordId"]?.toLongOrNull()
+            val type = call.parameters["type"]
+            if (vetId == null) { call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token")); return@patch }
+            if (appointmentId == null || appointmentId <= 0 || recordId == null || recordId <= 0 || type !in setOf("allergies", "conditions", "vaccinations")) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Valid appointment, health record and type are required")); return@patch }
+            try {
+                if (UserRepository.findRoleById(vetId) != "VET") { call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Veterinarian role required")); return@patch }
+                val body = call.receive<UpdatePetHealthFactRequest>()
+                val changed = PetHealthWriteRepository.updateHealthFact(vetId, appointmentId, type!!, recordId, body.status, body.reason)
+                if (changed) call.respond(HttpStatusCode.OK, mapOf("message" to "Pet medical history updated")) else call.respond(HttpStatusCode.NotFound, mapOf("error" to "Record not found for this appointment's pet"))
+            } catch (e: SecurityException) { call.respond(HttpStatusCode.Forbidden, mapOf("error" to (e.message ?: "Not authorized"))) }
+            catch (e: IllegalArgumentException) { call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Invalid health record status"))) }
+            catch (e: Exception) { application.log.error("Failed to update pet health record", e); call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to update pet health record")) }
+        }
+
         // List consultations belonging to the logged-in veterinarian.
         get("/api/vets/consultations") {
             val vetUserId = call.principal<JWTPrincipal>()
@@ -2195,7 +2317,11 @@ private fun Route.configureMedicalDocumentRoutes() {
             var fileBytes: ByteArray? = null
 
             val multipart = call.receiveMultipart(
-                formFieldLimit = 16 * 1024L
+                // Ktor applies this limit to file parts too. Leave a small parser
+                // buffer above the application file limit; the streaming loop
+                // below still enforces the exact 10 MB maximum.
+                formFieldLimit = MedicalDocumentStorage.MAX_FILE_SIZE_BYTES +
+                    MULTIPART_LIMIT_BUFFER_BYTES
             )
 
             multipart.forEachPart { part ->
@@ -2328,6 +2454,8 @@ private fun Route.configureMedicalDocumentRoutes() {
                     uploadedAt = record.uploadedAt.toString()
                 )
             )
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: IllegalArgumentException) {
             call.respond(
                 HttpStatusCode.BadRequest,
@@ -2416,6 +2544,113 @@ private fun Route.configureMedicalDocumentRoutes() {
                 HttpStatusCode.InternalServerError,
                 mapOf("error" to "Unable to retrieve medical documents")
             )
+        }
+    }
+
+    get("/api/vets/appointments/{appointmentId}/medical-documents") {
+        val vetUserId = call.principal<JWTPrincipal>()
+            ?.payload?.subject?.toLongOrNull()
+        if (vetUserId == null) {
+            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token"))
+            return@get
+        }
+
+        val appointmentId = call.parameters["appointmentId"]?.toLongOrNull()
+        if (appointmentId == null || appointmentId <= 0) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid appointment ID is required"))
+            return@get
+        }
+
+        try {
+            if (UserRepository.findRoleById(vetUserId) != "VET") {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can view patient documents"))
+                return@get
+            }
+
+            val documents = MedicalDocumentService()
+                .getDocumentsForConfirmedVetAppointment(vetUserId, appointmentId)
+            call.response.header("Cache-Control", "private, no-store")
+            call.respond(
+                HttpStatusCode.OK,
+                MedicalDocumentListResponse(
+                    documents.map { document ->
+                        MedicalDocumentResponse(
+                            id = document.id,
+                            petId = document.petId,
+                            consultationId = document.consultationId,
+                            uploadedBy = document.uploadedBy,
+                            documentType = document.documentType,
+                            originalFilename = document.originalFilename,
+                            mimeType = document.mimeType,
+                            fileSizeBytes = document.fileSizeBytes,
+                            processingStatus = document.processingStatus,
+                            uploadedAt = document.uploadedAt
+                        )
+                    }
+                )
+            )
+        } catch (exception: SecurityException) {
+            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "A confirmed appointment assigned to you is required"))
+        } catch (exception: Exception) {
+            application.log.error("Failed to retrieve medical documents for veterinarian $vetUserId", exception)
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to retrieve medical documents"))
+        }
+    }
+
+    get("/api/vets/appointments/{appointmentId}/medical-documents/{documentId}/download") {
+        val vetUserId = call.principal<JWTPrincipal>()
+            ?.payload?.subject?.toLongOrNull()
+        if (vetUserId == null) {
+            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid authentication token"))
+            return@get
+        }
+
+        val appointmentId = call.parameters["appointmentId"]?.toLongOrNull()
+        val documentId = call.parameters["documentId"]?.toLongOrNull()
+        if (appointmentId == null || appointmentId <= 0 || documentId == null || documentId <= 0) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Valid appointment and document IDs are required"))
+            return@get
+        }
+
+        try {
+            if (UserRepository.findRoleById(vetUserId) != "VET") {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only veterinarians can download patient documents"))
+                return@get
+            }
+
+            val result = MedicalDocumentService().downloadDocumentForConfirmedVetAppointment(
+                vetUserId = vetUserId,
+                appointmentId = appointmentId,
+                documentId = documentId
+            )
+            if (result == null) {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Document not found for this appointment"))
+                return@get
+            }
+
+            val (document, bytes) = result
+            val safeName = document.originalFilename
+                .substringAfterLast('/').substringAfterLast('\\')
+                .replace("\"", "").replace("\r", "").replace("\n", "")
+            call.response.header(
+                io.ktor.http.HttpHeaders.ContentDisposition,
+                io.ktor.http.ContentDisposition.Attachment.withParameter(
+                    io.ktor.http.ContentDisposition.Parameters.FileName,
+                    safeName
+                ).toString()
+            )
+            call.response.header("Cache-Control", "private, no-store")
+            call.response.header("X-Content-Type-Options", "nosniff")
+            call.respondBytes(
+                bytes = bytes,
+                contentType = io.ktor.http.ContentType.parse(document.mimeType),
+                status = HttpStatusCode.OK
+            )
+        } catch (exception: SecurityException) {
+            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "A confirmed appointment assigned to you is required"))
+        } catch (exception: Exception) {
+            application.log.error("Veterinarian $vetUserId failed to download patient document", exception)
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to download medical document"))
         }
     }
 
@@ -2543,7 +2778,10 @@ private fun Route.configureVetCredentialDocumentRoutes() {
             var totalBytes = 0L
 
             val multipart = call.receiveMultipart(
-                formFieldLimit = 1024L * 1024L
+                // Each credential file is capped at 10 MB by the service and
+                // by the per-part streaming check below.
+                formFieldLimit = VetCredentialDocumentService.MAX_FILE_SIZE_BYTES +
+                    MULTIPART_LIMIT_BUFFER_BYTES
             )
 
             multipart.forEachPart { part ->
@@ -2598,6 +2836,7 @@ private fun Route.configureVetCredentialDocumentRoutes() {
                     val output = ByteArrayOutputStream()
                     val buffer = ByteArray(8192)
                     val channel = part.provider()
+                    var fileBytes = 0L
 
                     while (true) {
                         val count = channel.readAvailable(
@@ -2609,7 +2848,14 @@ private fun Route.configureVetCredentialDocumentRoutes() {
                         if (count == -1) break
                         if (count == 0) continue
 
+                        fileBytes += count
                         totalBytes += count
+
+                        if (fileBytes > VetCredentialDocumentService.MAX_FILE_SIZE_BYTES) {
+                            throw IllegalArgumentException(
+                                "Each credential document must not exceed 10 MB"
+                            )
+                        }
 
                         if (
                             totalBytes >
@@ -2672,6 +2918,8 @@ private fun Route.configureVetCredentialDocumentRoutes() {
                 )
             )
 
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: IllegalArgumentException) {
             call.respond(
                 HttpStatusCode.BadRequest,

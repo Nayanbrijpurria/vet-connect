@@ -93,32 +93,28 @@
                 </div>
 
                 <form id="medical-record-form" class="medical-record-form">
-                    <label for="record-pet">Pet name</label>
-                    <input id="record-pet" name="petName" type="text"
-                           placeholder="Enter your pet's name" required>
+                    <label for="record-pet">Pet</label>
+                    <select id="record-pet" name="petId" required>
+                        <option value="">Loading pets...</option>
+                    </select>
 
                     <label for="record-type">Document type</label>
                     <select id="record-type" name="recordType" required>
                         <option value="">Select document type</option>
-                        <option value="Prescription">Prescription</option>
-                        <option value="Lab Report">Lab report</option>
-                        <option value="Vaccination">Vaccination record</option>
-                        <option value="Discharge Summary">Discharge summary</option>
-                        <option value="Imaging">X-ray / Imaging report</option>
-                        <option value="Other">Other</option>
+                        <option value="PRESCRIPTION">Prescription document</option>
+                        <option value="LAB_REPORT">Lab report</option>
+                        <option value="MEDICAL_HISTORY">Medical history</option>
+                        <option value="IMAGING">X-ray / Imaging report</option>
+                        <option value="OTHER">Other</option>
                     </select>
-
-                    <label for="record-date">Document date</label>
-                    <input id="record-date" name="recordDate" type="date"
-                           required>
 
                     <label for="record-file">Choose document</label>
                     <input id="record-file" name="recordFile" type="file"
-                           accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
+                           accept=".pdf,.png,.jpg,.jpeg"
                            required>
 
                     <p class="form-hint">
-                        Supported formats: PDF, JPG, PNG, WEBP and TXT.
+                        Supported formats: PDF, JPG and PNG.
                         Maximum file size: 10 MB.
                     </p>
 
@@ -136,7 +132,7 @@
                     <div>
                         <h2>Medical document history</h2>
                         <p id="record-summary">
-                            Your saved demo documents will appear here.
+                            Server records associated with the selected pet.
                         </p>
                     </div>
                 </div>

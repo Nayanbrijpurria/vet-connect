@@ -40,4 +40,24 @@ class ServerTest {
             response.bodyAsText().contains("\"status\":\"ok\"")
         )
     }
+
+    @Test
+    fun `medical history endpoints require authentication`() = testApplication {
+        application { configureApplication() }
+
+        val customerResponse = client.get("/api/pets/1/medical-history")
+        val veterinarianResponse = client.get("/api/vets/appointments/1/medical-history")
+
+        assertEquals(HttpStatusCode.Unauthorized, customerResponse.status)
+        assertEquals(HttpStatusCode.Unauthorized, veterinarianResponse.status)
+    }
+
+    @Test
+    fun `admin veterinarian queue rejects unauthenticated requests`() = testApplication {
+        application { configureApplication() }
+
+        val response = client.get("/api/admin/vets/pending")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
 }

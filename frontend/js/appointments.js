@@ -83,6 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     )
                 );
             });
+            const requestedPetId = new URLSearchParams(window.location.search).get("petId");
+            if (requestedPetId && pets.some(pet => String(pet.id) === requestedPetId)) {
+                petSelect.value = requestedPetId;
+            }
         } catch (error) {
             petSelect.replaceChildren(
                 new Option("Unable to load pets", "")
