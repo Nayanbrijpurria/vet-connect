@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Registration does not automatically log the user in.
             setTimeout(() => {
-                window.location.href = "login.html";
+                window.location.href = "/pages/login.html";
             }, 1800);
 
         } catch (error) {

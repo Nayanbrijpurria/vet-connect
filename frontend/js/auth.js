@@ -53,11 +53,11 @@ if (loginForm) {
 
             // Temporary destination until separate role dashboards are ready.
             if (data.role === "CUSTOMER") {
-                window.location.href = "dashboard.html";
+                window.location.href = "/pages/dashboard.html";
             } else if (data.role === "VET") {
-                window.location.href = "vet-dashboard.html";
+                window.location.href = "/pages/vet-dashboard.html";
             } else if (data.role === "ADMIN") {
-                window.location.href = "admin-dashboard.html";
+                window.location.href = "/pages/admin-dashboard.html";
             } else {
                 throw new Error("Your account has an unrecognized role.");
             }

@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // The veterinarian can log in after registration to
             // check their account status. Approval is still required.
             setTimeout(() => {
-                window.location.href = "login.html";
+                window.location.href = "/pages/login.html";
             }, 3000);
 
         } catch (error) {
