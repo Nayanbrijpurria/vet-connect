@@ -58,34 +58,82 @@ object TimeOffRepository {
         }
 
         DatabaseFactory.withConnection { connection ->
-            connection.prepareStatement(
-                """
-                INSERT INTO vet_time_off (
-                    vet_profile_id,
-                    starts_at,
-                    ends_at,
-                    reason
-                )
-                SELECT user_id, ?, ?, ?
-                FROM vet_profiles
-                WHERE user_id = ?
-                RETURNING id, vet_profile_id, starts_at, ends_at, reason
-                """.trimIndent()
-            ).use { statement ->
-                statement.setObject(1, start)
-                statement.setObject(2, end)
-                statement.setString(3, request.reason)
-                statement.setLong(4, vetUserId)
+            val originalAutoCommit = connection.autoCommit
+            try {
+                connection.autoCommit = false
 
-                statement.executeQuery().use { rs ->
-                    if (!rs.next()) {
-                        throw IllegalArgumentException(
-                            "Veterinarian profile not found"
-                        )
+                val vetProfileId = connection.prepareStatement(
+                    """
+                    SELECT id
+                    FROM vet_profiles
+                    WHERE user_id = ?
+                    FOR UPDATE
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetUserId)
+                    statement.executeQuery().use { rs ->
+                        if (rs.next()) rs.getLong("id") else null
                     }
+                } ?: throw IllegalArgumentException("Veterinarian profile not found")
 
-                    mapTimeOff(rs)
+                val overlapsAppointment = connection.prepareStatement(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM appointments
+                        WHERE vet_profile_id = ?
+                          AND status IN ('PENDING', 'CONFIRMED')
+                          AND scheduled_start < ?
+                          AND scheduled_end > ?
+                    )
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetProfileId)
+                    statement.setObject(2, end)
+                    statement.setObject(3, start)
+                    statement.executeQuery().use { rs ->
+                        rs.next() && rs.getBoolean(1)
+                    }
                 }
+
+                require(!overlapsAppointment) {
+                    "Time off cannot overlap a pending or confirmed appointment"
+                }
+
+                val timeOff = connection.prepareStatement(
+                    """
+                    INSERT INTO vet_time_off (
+                        vet_profile_id,
+                        starts_at,
+                        ends_at,
+                        reason
+                    )
+                    VALUES (?, ?, ?, ?)
+                    RETURNING id, vet_profile_id, starts_at, ends_at, reason
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setLong(1, vetUserId)
+                    statement.setObject(2, start)
+                    statement.setObject(3, end)
+                    statement.setString(4, request.reason)
+
+                    statement.executeQuery().use { rs ->
+                        check(rs.next()) { "Failed to create time off" }
+                        mapTimeOff(rs)
+                    }
+                }
+
+                connection.commit()
+                timeOff
+            } catch (exception: Exception) {
+                try {
+                    connection.rollback()
+                } catch (rollbackException: Exception) {
+                    exception.addSuppressed(rollbackException)
+                }
+                throw exception
+            } finally {
+                connection.autoCommit = originalAutoCommit
             }
         }
     }
