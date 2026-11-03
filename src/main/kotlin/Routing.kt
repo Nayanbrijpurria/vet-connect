@@ -259,7 +259,7 @@ fun Route.configureRouting() {
                     userId = user.id,
                     email = user.email,
                     role = user.role,
-                    verificationStatus = "PENDING"
+                    verificationStatus = VetVerificationStatus.PENDING
                 )
             )
         } catch (exception: java.sql.SQLException) {
@@ -851,7 +851,7 @@ fun Route.configureRouting() {
                         VetReapplicationResponse(
                             message = "Your application has been resubmitted for review",
                             userId = userId,
-                            verificationStatus = "PENDING"
+                            verificationStatus = VetVerificationStatus.PENDING
                         )
                     )
                 }
@@ -1890,9 +1890,9 @@ fun Route.configureRouting() {
                     return@patch
                 }
 
-                val newStatus = request.action.trim().uppercase()
+                val newStatus = runCatching { AppointmentStatus.valueOf(request.action.trim().uppercase()) }.getOrNull()
 
-                if (newStatus != "COMPLETED" && newStatus != "CANCELLED") {
+                if (newStatus != AppointmentStatus.COMPLETED && newStatus != AppointmentStatus.CANCELLED) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "Action must be COMPLETED or CANCELLED")
@@ -1904,13 +1904,13 @@ fun Route.configureRouting() {
                     AppointmentRepository.updateVetAppointmentStatus(
                         vetUserId = vetUserId,
                         appointmentId = appointmentId,
-                        newStatus = newStatus
+                        newStatus = newStatus!!
                     )
 
                 if (updated) {
                     call.respond(
                         HttpStatusCode.OK,
-                        mapOf("message" to "Appointment status updated", "status" to newStatus)
+                        mapOf("message" to "Appointment status updated", "status" to newStatus.name)
                     )
                 } else {
                     call.respond(
@@ -3122,10 +3122,10 @@ private fun Route.configureAdminAccountRoutes() {
     get("/api/admin/accounts") {
         val adminId = call.adminIdOrRespond() ?: return@get
         val search = call.request.queryParameters["search"]?.trim().orEmpty()
-        val requestedRole = call.request.queryParameters["role"]?.trim()?.uppercase()
-        val role = requestedRole?.takeIf { it.isNotEmpty() }
+        val requestedRole = call.request.queryParameters["role"]?.trim()?.takeIf { it.isNotEmpty() }
+        val role = requestedRole?.let { runCatching { AccountRole.valueOf(it.uppercase()) }.getOrNull() }
 
-        if (search.length > 100 || (role != null && role !in setOf("CUSTOMER", "VET"))) {
+        if (search.length > 100 || (requestedRole != null && role !in setOf(AccountRole.CUSTOMER, AccountRole.VET))) {
             call.respond(HttpStatusCode.BadRequest, AuthResponse("Search must be at most 100 characters and role must be CUSTOMER or VET"))
             return@get
         }

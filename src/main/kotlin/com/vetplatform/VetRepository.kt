@@ -134,8 +134,7 @@ object VetRepository {
                                 userId = result.getLong("user_id"),
                                 registrationNumber =
                                     result.getString("registration_number"),
-                                verificationStatus =
-                                    result.getString("verification_status"),
+                                verificationStatus = VetVerificationStatus.valueOf(result.getString("verification_status")),
                                 rejectionReason = result.getString("rejection_reason")
                             )
                         } else {
@@ -185,8 +184,7 @@ object VetRepository {
                                 result.getInt("experience_years"),
                             consultationFee =
                                 result.getBigDecimal("consultation_fee").toDouble(),
-                            verificationStatus =
-                                result.getString("verification_status")
+                            verificationStatus = VetVerificationStatus.valueOf(result.getString("verification_status"))
                         )
                     } else {
                         null
@@ -471,7 +469,7 @@ data class VetProfileResponse(
     val registrationNumber: String,
     val experienceYears: Int,
     val consultationFee: Double,
-    val verificationStatus: String
+    val verificationStatus: VetVerificationStatus
 )
 
 @kotlinx.serialization.Serializable

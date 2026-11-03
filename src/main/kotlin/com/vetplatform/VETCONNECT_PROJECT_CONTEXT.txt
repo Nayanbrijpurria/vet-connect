@@ -4,6 +4,10 @@
 
 I am building VetConnect, a veterinary healthcare startup that aims to connect pet parents with veterinarians and provide online veterinary consultations and pet healthcare management.
 
+Also the pet parent can manage their pet's medical history of every pet separately and schedule appointments.
+
+This will help business owners to manage their veterinary services and provide better care for pets.
+
 This is intended to become a real startup product, not just a college project or prototype.
 
 I am a beginner in backend development. Explain technical concepts in simple language and guide me step by step.
@@ -40,6 +44,7 @@ Do not create duplicate endpoints, repositories, models or database tables when 
 ## 4. Backend Principles
 
 - Kotlin and Ktor handle API requests.
+- Use coroutines for asynchronous operations.
 - PostgreSQL stores persistent application data.
 - Flyway manages versioned database schema changes.
 - The backend is the source of truth for authentication, authorization, validation and business rules.
@@ -61,6 +66,7 @@ The long-term product may include:
 - Consultation notes and prescriptions.
 - Medical document uploads and extraction.
 - Notifications.
+- with the help of the medical history data we can create a chatbot which understands each pet's medical history and can provide relevant information to the pet parent.
 - AI-assisted veterinary information and conversation history.
 
 These are product goals, not proof that every feature has been implemented.
@@ -303,5 +309,10 @@ Tell me:
 - Which existing features could be affected.
 - Which tests passed and failed.
 - Any remaining risks.
+
+## 7. DESIGN THE NEXT STEPS WE SHOULD TAKE
+- Act as a senior software engineer and CTO. Suggest the next steps to implement the requested feature while preserving existing functionality.
+- And explain the reasoning behind your suggestions.
+- cereate a step-by-step plan for implementing the requested feature, including any necessary database migrations, API changes, and frontend updates.
 
 IMPORTANT: A feature is not complete simply because the new functionality works. Existing functionality must continue working too.

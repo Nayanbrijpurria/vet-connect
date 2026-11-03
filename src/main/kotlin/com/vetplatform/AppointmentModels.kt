@@ -19,7 +19,7 @@ data class AppointmentResponse(
     val vetUserId: Long,
     val scheduledStart: String,
     val scheduledEnd: String,
-    val status: String,
+    val status: AppointmentStatus,
     val consultationFee: Double,
     val meetingUrl: String? = null,
     val petName: String? = null,

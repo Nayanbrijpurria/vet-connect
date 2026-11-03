@@ -13,7 +13,7 @@ data class PendingVetResponse(
     val registrationNumber: String,
     val experienceYears: Int,
     val consultationFee: Double,
-    val verificationStatus: String,
+    val verificationStatus: VetVerificationStatus,
     val submissionNumber: Int = 1,
     val submissionSummary: String? = null
 )
@@ -32,18 +32,18 @@ data class VetReviewRequest(
 data class VetReviewResponse(
     val message: String,
     val userId: Long,
-    val verificationStatus: String
+    val verificationStatus: VetVerificationStatus
 )
 
 @Serializable
 data class AdminVetCredentialResponse(
     val id: Long,
     val vetUserId: Long,
-    val documentType: String,
+    val documentType: CredentialDocumentType,
     val originalFileName: String,
     val contentType: String,
     val fileSize: Long,
-    val verificationStatus: String,
+    val verificationStatus: VetVerificationStatus,
     val adminNotes: String?,
     val uploadedAt: String,
     val reviewedAt: String?
@@ -65,9 +65,9 @@ data class AdminAccountResponse(
     val userId: Long,
     val fullName: String,
     val email: String,
-    val role: String,
-    val accountStatus: String,
-    val verificationStatus: String?
+    val role: AccountRole,
+    val accountStatus: AccountStatus,
+    val verificationStatus: VetVerificationStatus?
 )
 
 @Serializable

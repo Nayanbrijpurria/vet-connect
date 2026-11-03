@@ -12,7 +12,7 @@ object AdminRepository {
 
     suspend fun searchAccounts(
         search: String,
-        role: String?
+        role: AccountRole?
     ): List<AdminAccountResponse> = withContext(Dispatchers.IO) {
         val sql = """
             SELECT u.id, u.full_name, u.email, u.role, u.account_status,
@@ -32,8 +32,8 @@ object AdminRepository {
                 statement.setString(1, search)
                 statement.setString(2, pattern)
                 statement.setString(3, pattern)
-                statement.setString(4, role.orEmpty())
-                statement.setString(5, role)
+                statement.setString(4, role?.name.orEmpty())
+                statement.setString(5, role?.name)
                 statement.executeQuery().use { result ->
                     buildList {
                         while (result.next()) add(
@@ -41,9 +41,9 @@ object AdminRepository {
                                 userId = result.getLong("id"),
                                 fullName = result.getString("full_name"),
                                 email = result.getString("email"),
-                                role = result.getString("role"),
-                                accountStatus = result.getString("account_status"),
-                                verificationStatus = result.getString("verification_status")
+                                role = AccountRole.valueOf(result.getString("role")),
+                                accountStatus = AccountStatus.valueOf(result.getString("account_status")),
+                                verificationStatus = result.getString("verification_status")?.let(VetVerificationStatus::valueOf)
                             )
                         )
                     }
@@ -77,9 +77,9 @@ object AdminRepository {
                             userId = userId,
                             fullName = result.getString("full_name"),
                             email = result.getString("email"),
-                            role = result.getString("role"),
-                            accountStatus = result.getString("account_status"),
-                            verificationStatus = result.getString("verification_status")
+                            role = AccountRole.valueOf(result.getString("role")),
+                            accountStatus = AccountStatus.valueOf(result.getString("account_status")),
+                            verificationStatus = result.getString("verification_status")?.let(VetVerificationStatus::valueOf)
                         ) else null
                     }
                 } ?: run {
@@ -87,10 +87,10 @@ object AdminRepository {
                     return@withConnection null
                 }
 
-                if (current.role !in setOf("CUSTOMER", "VET")) {
+                if (current.role !in setOf(AccountRole.CUSTOMER, AccountRole.VET)) {
                     throw IllegalArgumentException("Only customer and veterinarian accounts can be changed")
                 }
-                val expected = if (enabled) "DISABLED" else "ACTIVE"
+                val expected = if (enabled) AccountStatus.DISABLED else AccountStatus.ACTIVE
                 if (current.accountStatus != expected) {
                     connection.rollback()
                     return@withConnection null
@@ -99,7 +99,7 @@ object AdminRepository {
                 connection.prepareStatement(
                     "UPDATE users SET account_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
                 ).use { statement ->
-                    statement.setString(1, if (enabled) "ACTIVE" else "DISABLED")
+                    statement.setString(1, (if (enabled) AccountStatus.ACTIVE else AccountStatus.DISABLED).name)
                     statement.setLong(2, userId)
                     statement.executeUpdate()
                 }
@@ -108,7 +108,7 @@ object AdminRepository {
                     if (enabled) "ACCOUNT_ENABLED" else "ACCOUNT_DISABLED", reason
                 )
                 connection.commit()
-                current.copy(accountStatus = if (enabled) "ACTIVE" else "DISABLED")
+                current.copy(accountStatus = if (enabled) AccountStatus.ACTIVE else AccountStatus.DISABLED)
             } catch (exception: Exception) {
                 try { connection.rollback() } catch (rollbackException: Exception) {
                     exception.addSuppressed(rollbackException)
@@ -145,9 +145,9 @@ object AdminRepository {
                             userId = userId,
                             fullName = result.getString("full_name"),
                             email = result.getString("email"),
-                            role = "VET",
-                            accountStatus = result.getString("account_status"),
-                            verificationStatus = result.getString("verification_status")
+                            role = AccountRole.VET,
+                            accountStatus = AccountStatus.valueOf(result.getString("account_status")),
+                            verificationStatus = result.getString("verification_status")?.let(VetVerificationStatus::valueOf)
                         ) else null
                     }
                 } ?: run {
@@ -155,7 +155,7 @@ object AdminRepository {
                     return@withConnection null
                 }
 
-                val expected = if (suspended) "APPROVED" else "SUSPENDED"
+                val expected = if (suspended) VetVerificationStatus.APPROVED else VetVerificationStatus.SUSPENDED
                 if (current.verificationStatus != expected) {
                     connection.rollback()
                     return@withConnection null
@@ -182,7 +182,7 @@ object AdminRepository {
                            reviewed_at = CURRENT_TIMESTAMP, rejection_reason = ?
                        WHERE user_id = ?""".trimIndent()
                 ).use { statement ->
-                    statement.setString(1, if (suspended) "SUSPENDED" else "APPROVED")
+                    statement.setString(1, (if (suspended) VetVerificationStatus.SUSPENDED else VetVerificationStatus.APPROVED).name)
                     statement.setLong(2, adminId)
                     statement.setString(3, if (suspended) reason else null)
                     statement.setLong(4, userId)
@@ -206,7 +206,7 @@ object AdminRepository {
                     statement.executeUpdate()
                 }
                 connection.commit()
-                current.copy(verificationStatus = if (suspended) "SUSPENDED" else "APPROVED")
+                current.copy(verificationStatus = if (suspended) VetVerificationStatus.SUSPENDED else VetVerificationStatus.APPROVED)
             } catch (exception: Exception) {
                 try { connection.rollback() } catch (rollbackException: Exception) {
                     exception.addSuppressed(rollbackException)
@@ -259,11 +259,11 @@ object AdminRepository {
                                 AdminVetCredentialResponse(
                                     id = result.getLong("id"),
                                     vetUserId = result.getLong("vet_user_id"),
-                                    documentType = result.getString("document_type"),
+                                    documentType = CredentialDocumentType.valueOf(result.getString("document_type")),
                                     originalFileName = result.getString("original_file_name"),
                                     contentType = result.getString("content_type"),
                                     fileSize = result.getLong("file_size"),
-                                    verificationStatus = result.getString("verification_status"),
+                                    verificationStatus = VetVerificationStatus.valueOf(result.getString("verification_status")),
                                     adminNotes = result.getString("admin_notes"),
                                     uploadedAt = result.getTimestamp("uploaded_at")
                                         .toInstant().toString(),
@@ -306,7 +306,7 @@ object AdminRepository {
                 """.trimIndent()
 
                 val document = connection.prepareStatement(sql).use { statement ->
-                    statement.setString(1, if (approved) "APPROVED" else "REJECTED")
+                    statement.setString(1, (if (approved) VetVerificationStatus.APPROVED else VetVerificationStatus.REJECTED).name)
                     statement.setString(2, adminNotes)
                     statement.setLong(3, adminId)
                     statement.setLong(4, documentId)
@@ -350,11 +350,11 @@ object AdminRepository {
     private fun java.sql.ResultSet.toAdminCredential() = AdminVetCredentialResponse(
         id = getLong("id"),
         vetUserId = getLong("vet_user_id"),
-        documentType = getString("document_type"),
+        documentType = CredentialDocumentType.valueOf(getString("document_type")),
         originalFileName = getString("original_file_name"),
         contentType = getString("content_type"),
         fileSize = getLong("file_size"),
-        verificationStatus = getString("verification_status"),
+        verificationStatus = VetVerificationStatus.valueOf(getString("verification_status")),
         adminNotes = getString("admin_notes"),
         uploadedAt = getTimestamp("uploaded_at").toInstant().toString(),
         reviewedAt = getTimestamp("reviewed_at")?.toInstant()?.toString()
@@ -410,8 +410,7 @@ object AdminRepository {
                                         consultationFee =
                                             result.getBigDecimal("consultation_fee")
                                                 .toDouble(),
-                                        verificationStatus =
-                                            result.getString("verification_status"),
+                                        verificationStatus = VetVerificationStatus.valueOf(result.getString("verification_status")),
                                         submissionNumber = result.getInt("submission_number"),
                                         submissionSummary = result.getString("submission_summary")
                                     )
@@ -507,7 +506,7 @@ object AdminRepository {
                     }
                 }
 
-                val status = if (approved) "APPROVED" else "REJECTED"
+                val status = if (approved) VetVerificationStatus.APPROVED else VetVerificationStatus.REJECTED
 
                 val updateSql = """
                     UPDATE vet_profiles
@@ -523,7 +522,7 @@ object AdminRepository {
 
                 val updatedUserId =
                     connection.prepareStatement(updateSql).use { statement ->
-                        statement.setString(1, status)
+                        statement.setString(1, status.name)
                         statement.setLong(2, adminId)
                         statement.setString(3, rejectionReason)
                         statement.setLong(4, userId)
@@ -552,7 +551,7 @@ object AdminRepository {
                     statement.setLong(2, adminId)
                     statement.setString(3, if (approved) "APPROVED" else "REJECTED")
                     statement.setString(4, previousStatus)
-                    statement.setString(5, status)
+                        statement.setString(5, status.name)
                     statement.setString(6, rejectionReason)
                     statement.executeUpdate()
                 }

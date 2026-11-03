@@ -24,11 +24,11 @@ data class VetCredentialUpload(
 @kotlinx.serialization.Serializable
 data class VetCredentialDocumentResponse(
     val id: Long,
-    val documentType: String,
+    val documentType: CredentialDocumentType,
     val originalFileName: String,
     val contentType: String,
     val fileSize: Long,
-    val verificationStatus: String,
+    val verificationStatus: VetVerificationStatus,
     val uploadedAt: String
 )
 
@@ -264,9 +264,7 @@ object VetCredentialDocumentService {
                                 responses.add(
                                     VetCredentialDocumentResponse(
                                         id = result.getLong("id"),
-                                        documentType = result.getString(
-                                            "document_type"
-                                        ),
+                                        documentType = CredentialDocumentType.valueOf(result.getString("document_type")),
                                         originalFileName = result.getString(
                                             "original_file_name"
                                         ),
@@ -274,9 +272,7 @@ object VetCredentialDocumentService {
                                             "content_type"
                                         ),
                                         fileSize = result.getLong("file_size"),
-                                        verificationStatus = result.getString(
-                                            "verification_status"
-                                        ),
+                                        verificationStatus = VetVerificationStatus.valueOf(result.getString("verification_status")),
                                         uploadedAt = result.getTimestamp(
                                             "uploaded_at"
                                         ).toInstant().toString()
@@ -345,13 +341,12 @@ object VetCredentialDocumentService {
                         documents.add(
                             VetCredentialDocumentResponse(
                                 id = result.getLong("id"),
-                                documentType = result.getString("document_type"),
+                                documentType = CredentialDocumentType.valueOf(result.getString("document_type")),
                                 originalFileName =
                                     result.getString("original_file_name"),
                                 contentType = result.getString("content_type"),
                                 fileSize = result.getLong("file_size"),
-                                verificationStatus =
-                                    result.getString("verification_status"),
+                                verificationStatus = VetVerificationStatus.valueOf(result.getString("verification_status")),
                                 uploadedAt = result.getTimestamp("uploaded_at")
                                     .toInstant()
                                     .toString()

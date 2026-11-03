@@ -304,7 +304,7 @@ FOR UPDATE OF u, vp
                             vetUserId = request.vetUserId,
                             scheduledStart = start.toString(),
                             scheduledEnd = end.toString(),
-                            status = rs.getString("status"),
+                            status = AppointmentStatus.valueOf(rs.getString("status")),
                             consultationFee =
                                 rs.getBigDecimal("consultation_fee").toDouble()
                         )
@@ -373,7 +373,7 @@ FOR UPDATE OF u, vp
                                     "scheduled_end",
                                     OffsetDateTime::class.java
                                 ).toString(),
-                                status = rs.getString("status"),
+                                status = AppointmentStatus.valueOf(rs.getString("status")),
                                 consultationFee = rs.getBigDecimal(
                                     "consultation_fee"
                                 ).toDouble(),
@@ -465,7 +465,7 @@ FOR UPDATE OF u, vp
                                     "scheduled_end",
                                     OffsetDateTime::class.java
                                 ).toString(),
-                                status = rs.getString("status"),
+                                status = AppointmentStatus.valueOf(rs.getString("status")),
                                 consultationFee = rs.getBigDecimal(
                                     "consultation_fee"
                                 ).toDouble(),
@@ -488,10 +488,10 @@ FOR UPDATE OF u, vp
     suspend fun updateVetAppointmentStatus(
         vetUserId: Long,
         appointmentId: Long,
-        newStatus: String
+        newStatus: AppointmentStatus
     ): Boolean = withContext(Dispatchers.IO) {
 
-        require(newStatus == "COMPLETED" || newStatus == "CANCELLED") {
+        require(newStatus == AppointmentStatus.COMPLETED || newStatus == AppointmentStatus.CANCELLED) {
             "Status must be COMPLETED or CANCELLED"
         }
 
@@ -518,11 +518,11 @@ FOR UPDATE OF u, vp
                 """.trimIndent()
             ).use { statement ->
 
-                statement.setString(1, newStatus)
+                statement.setString(1, newStatus.name)
                 statement.setLong(2, appointmentId)
                 statement.setLong(3, vetUserId)
-                statement.setString(4, newStatus)
-                statement.setString(5, newStatus)
+                statement.setString(4, newStatus.name)
+                statement.setString(5, newStatus.name)
 
                 statement.executeUpdate() == 1
             }
