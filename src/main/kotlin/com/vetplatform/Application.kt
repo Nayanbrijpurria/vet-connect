@@ -23,21 +23,22 @@ fun Application.module() {
 fun Application.configureApplication() {
 
 
+
     install(CORS) {
+
         // Local development
         allowHost("localhost:63342", schemes = listOf("http"))
         allowHost("127.0.0.1:63342", schemes = listOf("http"))
-
         allowHost("localhost:5500", schemes = listOf("http"))
         allowHost("127.0.0.1:5500", schemes = listOf("http"))
 
         // Production frontend - Vercel
         allowHost(
-            "vet-connect-frontend-eight.vercel.app",
+            "vet-connect-frontend-nine.vercel.app",
             schemes = listOf("https")
         )
 
-        // Allowed HTTP methods
+        // HTTP methods
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
@@ -45,10 +46,11 @@ fun Application.configureApplication() {
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Options)
 
-        // Allowed request headers
+        // Allowed headers
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
     }
+
 
     install(ContentNegotiation) {
         json()
