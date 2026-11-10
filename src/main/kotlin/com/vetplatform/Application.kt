@@ -34,7 +34,7 @@ fun Application.configureApplication() {
 
         // Production frontend - Vercel
         allowHost(
-            "vet-connect-frontend-nine.vercel.app",
+            "vet-connect-frontend-reemltg48.vercel.app",
             schemes = listOf("https")
         )
 
