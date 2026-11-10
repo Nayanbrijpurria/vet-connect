@@ -13,6 +13,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.server.application.*
 
 fun Application.module() {
     FlywayFactory.migrate()
