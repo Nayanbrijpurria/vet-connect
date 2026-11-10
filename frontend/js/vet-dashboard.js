@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://vet-connect-production.up.railway.app";
+// const API_BASE_URL = "https://vet-connect-production.up.railway.app";
 
 document.addEventListener("DOMContentLoaded", function () {
     const email = sessionStorage.getItem("vetplatform_email");
