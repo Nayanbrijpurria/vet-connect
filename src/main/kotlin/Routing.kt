@@ -4,6 +4,7 @@ package com.vetplatform
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.log
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
@@ -27,6 +28,36 @@ import io.ktor.server.response.respondBytes
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
+
+private suspend fun ApplicationCall.respondGoogleAuthentication(account: GoogleAccount) {
+    val loginUser = LoginUser(
+        id = account.userId,
+        fullName = account.fullName,
+        email = account.email,
+        passwordHash = account.passwordHash,
+        role = account.role,
+        accountStatus = account.accountStatus
+    )
+    val accessToken = JwtService.generateAccessToken(loginUser)
+    val refreshToken = JwtService.generateRefreshToken()
+    RefreshTokenRepository.expireOldSessions()
+    RefreshTokenRepository.createSession(
+        userId = account.userId,
+        tokenHash = JwtService.hashRefreshToken(refreshToken),
+        expiresAt = Instant.now().plusSeconds(JwtService.REFRESH_TOKEN_EXPIRY_SECONDS)
+    )
+    AuthSecurity.appendRefreshCookie(this, refreshToken)
+    respond(
+        HttpStatusCode.OK,
+        AuthResponse(
+            message = "Google Sign-In successful",
+            userId = account.userId,
+            email = account.email,
+            role = account.role,
+            token = accessToken
+        )
+    )
+}
 
 private const val MULTIPART_LIMIT_BUFFER_BYTES = 64L * 1024L
 
@@ -378,6 +409,70 @@ fun Route.configureRouting() {
         }
     }
 
+    // This response contains the only browser-visible Google configuration value.
+    get("/api/auth/google/config") {
+        val clientId = GoogleIdentityConfiguration.clientIdOrNull()
+        call.respond(
+            if (clientId == null) HttpStatusCode.ServiceUnavailable else HttpStatusCode.OK,
+            GoogleClientConfigResponse(clientId.orEmpty())
+        )
+    }
+
+    post("/api/auth/google") {
+        if (!AuthSecurity.isValidCookieRequest(call)) {
+            call.respond(HttpStatusCode.Forbidden, AuthResponse(message = AuthSecurity.CSRF_MESSAGE))
+            return@post
+        }
+
+        val request = try {
+            call.receive<GoogleSignInRequest>()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            call.respond(HttpStatusCode.BadRequest, AuthResponse(message = "Invalid Google sign-in request"))
+            return@post
+        }
+
+        try {
+            when (val result = GoogleAuth.service.signIn(request.credential)) {
+                is GoogleSignInResult.Authenticated -> call.respondGoogleAuthentication(result.account)
+                GoogleSignInResult.ExistingAccountMustLink -> call.respond(
+                    HttpStatusCode.Conflict,
+                    AuthResponse(message = "This email already has a VetConnect account. Sign in with that account first, then link Google from your customer dashboard.")
+                )
+                GoogleSignInResult.NotCustomer -> call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "Google Sign-In is only available for customer accounts.")
+                )
+                GoogleSignInResult.InactiveAccount -> call.respond(
+                    HttpStatusCode.Forbidden,
+                    AuthResponse(message = "This account is not available for sign-in.")
+                )
+            }
+        } catch (_: GoogleConfigurationMissingException) {
+            call.respond(HttpStatusCode.ServiceUnavailable, AuthResponse(message = "Google Sign-In is not configured"))
+        } catch (_: InvalidGoogleCredentialException) {
+            call.respond(HttpStatusCode.Unauthorized, AuthResponse(message = "Google could not verify this sign-in. Please try again."))
+        } catch (_: GoogleVerificationUnavailableException) {
+            application.log.warn("Google token verification is temporarily unavailable")
+            call.respond(HttpStatusCode.ServiceUnavailable, AuthResponse(message = "Google Sign-In is temporarily unavailable. Please try again."))
+        } catch (_: GoogleIdentityConflictException) {
+            call.respond(HttpStatusCode.Conflict, AuthResponse(message = "This email already has a VetConnect account. Sign in with that account first, then link Google from your customer dashboard."))
+        } catch (exception: java.sql.SQLException) {
+            if (exception.sqlState == "23505") {
+                call.respond(HttpStatusCode.Conflict, AuthResponse(message = "This Google account could not be linked. Sign in with your existing VetConnect account and try again."))
+            } else {
+                application.log.error("Google sign-in failed", exception)
+                call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Google Sign-In failed"))
+            }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            application.log.error("Google sign-in failed", exception)
+            call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Google Sign-In failed"))
+        }
+    }
+
     post("/api/auth/refresh") {
         if (!AuthSecurity.isValidCookieRequest(call)) {
             call.respond(HttpStatusCode.Forbidden, AuthResponse(message = AuthSecurity.CSRF_MESSAGE))
@@ -516,6 +611,60 @@ fun Route.configureRouting() {
 
 
     authenticate("auth-jwt") {
+
+        post("/api/auth/google/link") {
+            if (!AuthSecurity.isValidCookieRequest(call)) {
+                call.respond(HttpStatusCode.Forbidden, AuthResponse(message = AuthSecurity.CSRF_MESSAGE))
+                return@post
+            }
+
+            val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+            if (userId == null || userId <= 0) {
+                call.respond(HttpStatusCode.Unauthorized, AuthResponse(message = "Authentication required"))
+                return@post
+            }
+
+            val request = try {
+                call.receive<GoogleLinkRequest>()
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                call.respond(HttpStatusCode.BadRequest, AuthResponse(message = "Invalid Google linking request"))
+                return@post
+            }
+
+            try {
+                val result = GoogleAuth.service.link(userId, request.credential, request.currentPassword)
+                when (result) {
+                    GoogleLinkResult.LINKED -> call.respond(HttpStatusCode.OK, AuthResponse(message = "Google account linked"))
+                    GoogleLinkResult.ALREADY_LINKED -> call.respond(HttpStatusCode.OK, AuthResponse(message = "This Google account is already linked"))
+                    GoogleLinkResult.IDENTITY_IN_USE -> call.respond(HttpStatusCode.Conflict, AuthResponse(message = "This Google account cannot be linked to this VetConnect account"))
+                    GoogleLinkResult.INVALID_PASSWORD -> call.respond(HttpStatusCode.Forbidden, AuthResponse(message = "Your current VetConnect password could not be verified"))
+                    GoogleLinkResult.ACCOUNT_NOT_FOUND,
+                    GoogleLinkResult.NOT_CUSTOMER,
+                    GoogleLinkResult.INACTIVE_ACCOUNT -> call.respond(HttpStatusCode.Forbidden, AuthResponse(message = "Google linking is only available for active customer accounts"))
+                }
+            } catch (_: GoogleConfigurationMissingException) {
+                call.respond(HttpStatusCode.ServiceUnavailable, AuthResponse(message = "Google Sign-In is not configured"))
+            } catch (_: InvalidGoogleCredentialException) {
+                call.respond(HttpStatusCode.BadRequest, AuthResponse(message = "Google could not verify this account. Please try again."))
+            } catch (_: GoogleVerificationUnavailableException) {
+                application.log.warn("Google token verification is temporarily unavailable")
+                call.respond(HttpStatusCode.ServiceUnavailable, AuthResponse(message = "Google Sign-In is temporarily unavailable. Please try again."))
+            } catch (exception: java.sql.SQLException) {
+                if (exception.sqlState == "23505") {
+                    call.respond(HttpStatusCode.Conflict, AuthResponse(message = "This Google account cannot be linked to this VetConnect account"))
+                } else {
+                    application.log.error("Google account linking failed", exception)
+                    call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Google account linking failed"))
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                application.log.error("Google account linking failed", exception)
+                call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Google account linking failed"))
+            }
+        }
 
         post("/api/auth/logout-all") {
             if (!AuthSecurity.isValidCookieRequest(call)) {

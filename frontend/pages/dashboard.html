@@ -178,6 +178,24 @@
                 <div class="welcome-decoration" aria-hidden="true">🐕</div>
             </div>
 
+            <section id="google-link-section" class="content-section panel google-link-panel hidden">
+                <div class="section-header">
+                    <div>
+                        <h2>Connect Google</h2>
+                        <p>Link Google to make it easier to sign in next time.</p>
+                    </div>
+                </div>
+                <div class="google-link-controls">
+                    <label class="form-label" for="google-link-password">
+                        Confirm your VetConnect password
+                    </label>
+                    <input class="form-control" type="password" id="google-link-password"
+                           autocomplete="current-password" maxlength="72">
+                    <div id="google-link-button"></div>
+                    <p id="google-link-message" class="form-error hidden" role="status" aria-live="polite"></p>
+                </div>
+            </section>
+
             <section class="stats-grid" aria-label="Pet care summary">
 
                 <article class="stat-card">
@@ -312,6 +330,7 @@
 <script src="../js/auth.js"></script>
 <script src="../js/dashboard.js"></script>
 <script src="../js/notifications.js"></script>
+<script src="../js/google-auth.js"></script>
 
 </body>
 </html>

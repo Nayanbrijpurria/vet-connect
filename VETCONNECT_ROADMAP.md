@@ -1,5 +1,17 @@
 # VetConnect roadmap
 
+## Google Sign-In
+
+- [x] Verify Google ID tokens on the backend and issue VetConnect's existing tokens.
+- [x] Restrict Google authentication to active CUSTOMER accounts; prevent email-only account linking.
+- [x] Add explicit customer linking with session, Origin/CSRF, and current-password checks.
+- [x] Add additive V11 identity storage and frontend GIS controls.
+- [x] Add a Vercel same-origin `/api/*` proxy and keep local development pointed at local Ktor.
+- [x] Add backend policy/route tests and frontend flow tests.
+- [ ] Configure Google Web Client origins and Railway `GOOGLE_CLIENT_ID`/exact CORS origins.
+- [ ] Verify proxy header/cookie forwarding, refresh persistence, and API no-store behavior in Vercel Preview with staging data; only then consider changing production SameSite to Lax.
+- [ ] After explicit approval, deploy and verify the V11 migration, real Google tokens, and production browser session persistence.
+
 ## Pet-wise medical history
 
 ### Current milestone: core implementation in source
