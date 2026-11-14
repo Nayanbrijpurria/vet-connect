@@ -1,5 +1,18 @@
 # VetConnect progress
 
+## Google Sign-In
+
+**Status:** Implemented on `feature/google-oauth`. Production configuration, migration execution, and live Google/browser verification remain pending approval.
+
+- Added Google Identity Services ID-token verification through Google's Java verifier. Google credentials are exchanged for VetConnect's existing access JWT and refresh-cookie session.
+- Google access is CUSTOMER-only. New accounts are created only when no VetConnect account uses the verified email. Existing accounts must authenticate normally and explicitly link Google; linking checks the current password and CSRF/Origin.
+- Added the additive V11 `auth_identities` migration. It does not change existing user records or `password_hash NOT NULL`; Google-only users receive an undisclosed random-secret BCrypt hash for compatibility with existing releases.
+- Added the Vercel `/api/*` proxy and relative production API URLs; local frontend servers continue to use the local Ktor server. The existing cookie SameSite setting remains unchanged pending real proxy/browser verification.
+- Added the client-ID-only config endpoint, login button, customer dashboard link flow, policy tests, origin/CSRF route tests, and frontend tests.
+- Verification: `gradlew test build` passed (20 tests, 0 failures); `node --test frontend/tests/*.test.mjs` passed (7 tests, 0 failures); `git diff --check` found no whitespace errors.
+- Required before production: configure Railway `GOOGLE_CLIENT_ID` and exact `CORS_ALLOWED_ORIGINS` plus Google authorized origins; verify forwarded Origin, CSRF, and Set-Cookie behavior and refresh persistence in a Vercel Preview using a separate staging backend/database. Keep `SameSite=None` until browser verification passes; approve any cookie change separately.
+- Real signed Google token acceptance, PostgreSQL migration/transaction/race behavior, and deployed browser cookie behavior still need integration verification. No local `DB_URL` or `GOOGLE_CLIENT_ID` was configured, so those live integrations were not executed.
+
 ## Pet-wise medical history
 
 **Status:** Implemented in the current working tree; database/runtime verification is pending.

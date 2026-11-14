@@ -15,6 +15,25 @@
     {
       "source": "/index.html",
       "destination": "/pages/index.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://vet-connect-production.up.railway.app/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ]
 }

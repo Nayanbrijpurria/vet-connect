@@ -77,7 +77,8 @@
         const path = url.pathname;
         const publicAuthPath = [
             "/api/auth/login", "/api/auth/register", "/api/vets/register",
-            "/api/auth/refresh", "/api/auth/logout"
+            "/api/auth/refresh", "/api/auth/logout", "/api/auth/google",
+            "/api/auth/google/config"
         ].includes(path);
         const protectedRequest = isApi && !publicAuthPath && headers.has("Authorization");
         const options = { ...init, headers };

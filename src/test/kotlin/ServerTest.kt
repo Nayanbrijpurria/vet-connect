@@ -2,7 +2,10 @@
 package com.vetplatform
 
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlin.test.Test
@@ -59,5 +62,33 @@ class ServerTest {
         val response = client.get("/api/admin/vets/pending")
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun `Google sign-in rejects requests without the VetConnect origin and CSRF header`() = testApplication {
+        application { configureApplication() }
+
+        val noOrigin = client.post("/api/auth/google")
+        assertEquals(HttpStatusCode.Forbidden, noOrigin.status)
+
+        val noCsrf = client.post("/api/auth/google") {
+            header(HttpHeaders.Origin, "https://vet-connect-frontend-reemltg48.vercel.app")
+        }
+        assertEquals(HttpStatusCode.Forbidden, noCsrf.status)
+
+        val untrustedOrigin = client.post("/api/auth/google") {
+            header(HttpHeaders.Origin, "https://attacker.example")
+            header("X-VetConnect-CSRF", "1")
+        }
+        assertEquals(HttpStatusCode.Forbidden, untrustedOrigin.status)
+    }
+
+    @Test
+    fun `Google public configuration returns only the client id field`() = testApplication {
+        application { configureApplication() }
+
+        val response = client.get("/api/auth/google/config")
+        assertTrue(response.status == HttpStatusCode.OK || response.status == HttpStatusCode.ServiceUnavailable)
+        assertTrue(response.bodyAsText().matches(Regex("""\{"clientId":"[^"]*"\}""")))
     }
 }

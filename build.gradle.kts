@@ -47,6 +47,10 @@ dependencies {
     // JWT authentication
     implementation("io.ktor:ktor-server-auth-jwt-jvm:3.6.0")
 
+    // Google Identity Services ID-token verification
+    implementation("com.google.api-client:google-api-client:2.9.2")
+    implementation("com.google.http-client:google-http-client-gson:2.0.0")
+
 
     // Tests
     testImplementation(kotlin("test"))

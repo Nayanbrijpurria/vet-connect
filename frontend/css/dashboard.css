@@ -1097,6 +1097,20 @@ css
     display: none !important;
 }
 
+.google-link-controls {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 26rem;
+}
+
+.google-link-controls > p {
+    margin: 0;
+}
+
+.google-auth-success {
+    color: #137547;
+}
+
 @media (max-width: 600px) {
     .header-actions {
         gap: 10px;

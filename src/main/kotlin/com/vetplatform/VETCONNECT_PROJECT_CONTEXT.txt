@@ -262,7 +262,17 @@ Refresh and logout require an exact allowlisted Origin plus `X-VetConnect-CSRF: 
 
 The browser keeps access tokens in memory. A shared `frontend/js/api-client.js` restores them after page loads, attaches Authorization, coalesces refresh requests, retries a protected API call once, and clears auth metadata on refresh failure. It preserves existing request bodies and response handling for uploads and downloads.
 
-The current Vercel and Railway default hostnames are cross-site. `SameSite=None; Secure` does not guarantee that browsers will send the refresh cookie because third-party-cookie restrictions may block it. Production should use frontend and API custom domains under the same registrable domain, or a same-origin proxy. V10 is forward-only; never reset the existing production database to install it.
+The current Vercel and Railway default hostnames are cross-site. The frontend now has a Vercel `/api/*` external rewrite to Railway, and deployed JavaScript uses relative API URLs. `SameSite=None; Secure` remains unchanged until a Vercel Preview and real browser verify Origin, CSRF, Set-Cookie, and refresh persistence. V10 is forward-only; never reset the existing production database to install it.
+
+## Google Sign-In
+
+Google Identity Services is an additional CUSTOMER authentication method. The backend independently verifies Google ID-token signature, issuer, audience, expiration, stable `sub`, and verified email, then issues VetConnect's existing 15-minute access JWT and rotating 7-day refresh cookie. Google tokens are never VetConnect API tokens and are not stored. Existing VET/ADMIN and password authentication remain unchanged.
+
+`GET /api/auth/google/config` exposes only `GOOGLE_CLIENT_ID`. `POST /api/auth/google` signs in an already-linked identity or creates a CUSTOMER only when no VetConnect account uses that verified email. A matching email is never linked automatically. Customers link explicitly at `POST /api/auth/google/link` after an authenticated session, trusted Origin/CSRF validation, Google token verification, and current-password re-verification.
+
+Flyway V11 adds `auth_identities` with unique provider/subject and user/provider constraints. It does not change prior migrations, user rows, or the `password_hash NOT NULL` constraint. A Google-only customer receives a BCrypt hash of an undisclosed 256-bit random value; its plaintext is neither stored nor returned, so password login cannot authenticate that account while older releases continue reading the schema.
+
+Railway requires the public `GOOGLE_CLIENT_ID` value and an exact `CORS_ALLOWED_ORIGINS` list. Add the same frontend origins to the Google Web Client's authorized JavaScript origins. No Google client secret or new Vercel variable is needed. The Vercel proxy reduces browser third-party-cookie reliance, but refresh-cookie behavior is not verified until tested in a Preview browser against staging. See `GOOGLE_SIGN_IN.md` for setup and rollback instructions. Do not deploy or run V11 in production without explicit approval.
 
 
 # STRICT DEVELOPMENT RULES FOR VET CONNECT
