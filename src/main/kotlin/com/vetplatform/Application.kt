@@ -37,10 +37,10 @@ fun Application.configureApplication() {
         allowHost("127.0.0.1:5500", schemes = listOf("http"))
 
         // Production frontend - Vercel
-        allowHost(
-            "vet-connect-frontend-nine.vercel.app",
-            schemes = listOf("https")
-        )
+//        allowHost(
+//            "vet-connect-frontend-nine.vercel.app",
+//            schemes = listOf("https")
+//        )
         allowCredentials = true
 
         // HTTP methods
