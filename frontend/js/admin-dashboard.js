@@ -1,5 +1,5 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const token = sessionStorage.getItem("vetplatform_token");
+document.addEventListener("DOMContentLoaded", async function () {
+    const sessionRestored = await window.vetApi.ensureSession();
     const role = sessionStorage.getItem("vetplatform_role");
     const messageElement = document.getElementById("vet-applications-message");
     const listElement = document.getElementById("vet-applications-list");
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const accountMessage = document.getElementById("admin-accounts-message");
     const accountList = document.getElementById("admin-accounts-list");
 
-    if (!token || role !== "ADMIN") {
+    if (!sessionRestored || role !== "ADMIN") {
         window.location.replace("login.html");
         return;
     }
@@ -22,11 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
         emailElement.textContent = sessionStorage.getItem("vetplatform_email") || "Admin account";
     }
 
-    logoutButton?.addEventListener("click", function () {
-        ["vetplatform_token", "vetplatform_role", "vetplatform_email", "vetplatform_user_id"]
-            .forEach((key) => sessionStorage.removeItem(key));
-        window.location.replace("login.html");
-    });
+    logoutButton?.addEventListener("click", () => window.vetApi.logout());
     refreshButton?.addEventListener("click", loadPendingApplications);
     accountSearchForm?.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -63,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (!response.ok) {
             if (response.status === 401) {
-                ["vetplatform_token", "vetplatform_role", "vetplatform_email", "vetplatform_user_id"]
+                ["vetplatform_role", "vetplatform_email", "vetplatform_user_id"]
                     .forEach((key) => sessionStorage.removeItem(key));
                 sessionStorage.setItem(
                     "vetplatform_auth_notice",
@@ -87,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const response = await fetch(
                 `${API_BASE_URL}/api/admin/vets/${encodeURIComponent(vetUserId)}/credentials/${encodeURIComponent(credential.id)}/file`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: "Bearer" } }
             );
             if (!response.ok) {
                 const body = await readJson(response);
@@ -123,7 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 {
                     method: "PUT",
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: "Bearer",
                         Accept: "application/json",
                         "Content-Type": "application/json"
                     },
@@ -145,7 +141,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const response = await fetch(
                 `${API_BASE_URL}/api/admin/vets/${encodeURIComponent(vetUserId)}/credentials`,
-                { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
+                { headers: { Authorization: "Bearer", Accept: "application/json" } }
             );
             const credentials = await readJson(response);
             area.replaceChildren();
@@ -233,7 +229,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 {
                     method: "PUT",
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: "Bearer",
                         Accept: "application/json",
                         ...(approved ? {} : { "Content-Type": "application/json" })
                     },
@@ -254,7 +250,7 @@ document.addEventListener("DOMContentLoaded", function () {
         refreshButton.disabled = true;
         try {
             const response = await fetch(`${API_BASE_URL}/api/admin/vets/pending`, {
-                headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+                headers: { Authorization: "Bearer", Accept: "application/json" }
             });
             const body = await readJson(response);
             const applications = Array.isArray(body.applications) ? body.applications : [];
@@ -333,7 +329,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 {
                     method: "PUT",
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: "Bearer",
                         Accept: "application/json",
                         "Content-Type": "application/json"
                     },
@@ -356,7 +352,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 `${API_BASE_URL}/api/admin/vets/${encodeURIComponent(userId)}/approve`,
                 {
                     method: "PUT",
-                    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+                    headers: { Authorization: "Bearer", Accept: "application/json" }
                 }
             );
             await readJson(response);
@@ -378,7 +374,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const response = await fetch(
                 `${API_BASE_URL}/api/admin/accounts?${params.toString()}`,
-                { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
+                { headers: { Authorization: "Bearer", Accept: "application/json" } }
             );
             const body = await readJson(response);
             const accounts = Array.isArray(body.accounts) ? body.accounts : [];

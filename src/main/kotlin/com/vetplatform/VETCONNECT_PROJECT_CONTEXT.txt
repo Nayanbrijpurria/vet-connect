@@ -254,6 +254,16 @@ Before modifying existing code, inspect its current coroutine usage and architec
 
 The goal is to build a responsive, efficient, scalable and production-ready Kotlin/Ktor backend.
 
+## Authentication implementation note
+
+VetConnect now uses 15-minute signed access JWTs and 7-day opaque refresh tokens. Refresh tokens are only returned as an HttpOnly cookie and only their SHA-256 hashes are stored by Flyway V10 in `refresh_token_sessions`. Rotation is transactional, tracks a session family, and revokes that family when a rotated token is reused. Login keeps the existing `token` JSON response field; refresh and logout use `/api/auth/refresh` and `/api/auth/logout`; authenticated `/api/auth/logout-all` revokes all sessions.
+
+Refresh and logout require an exact allowlisted Origin plus `X-VetConnect-CSRF: 1`. Railway must set `JWT_SECRET` (at least 32 bytes), `APP_ENV=production`, and `CORS_ALLOWED_ORIGINS` (exact comma-separated HTTPS frontend origins, no wildcard). Existing `DB_URL`, `DB_USER`, and `DB_PASSWORD` remain required. The frontend API origin is currently configured in `frontend/js/config.js`.
+
+The browser keeps access tokens in memory. A shared `frontend/js/api-client.js` restores them after page loads, attaches Authorization, coalesces refresh requests, retries a protected API call once, and clears auth metadata on refresh failure. It preserves existing request bodies and response handling for uploads and downloads.
+
+The current Vercel and Railway default hostnames are cross-site. `SameSite=None; Secure` does not guarantee that browsers will send the refresh cookie because third-party-cookie restrictions may block it. Production should use frontend and API custom domains under the same registrable domain, or a same-origin proxy. V10 is forward-only; never reset the existing production database to install it.
+
 
 # STRICT DEVELOPMENT RULES FOR VET CONNECT
 

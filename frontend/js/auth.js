@@ -45,8 +45,8 @@ if (loginForm) {
                 throw new Error("The server response is missing login information.");
             }
 
-            // Store the login information for later authenticated requests.
-            sessionStorage.setItem("vetplatform_token", data.token);
+            // Keep the access token in memory; the refresh token stays in its HttpOnly cookie.
+            window.vetApi.setAccessToken(data.token);
             sessionStorage.setItem("vetplatform_role", data.role);
             sessionStorage.setItem("vetplatform_email", data.email || email);
             sessionStorage.setItem("vetplatform_user_id", data.userId ?? "");
@@ -65,7 +65,7 @@ if (loginForm) {
         } catch (error) {
             message.textContent =
                 error instanceof TypeError
-                    ? "Could not connect to the server. We will configure the connection next."
+                    ? "The login request was blocked or the authentication server is unreachable. Verify the Railway backend deployment and that CORS allows this site's exact origin."
                     : error.message;
 
             message.classList.remove("hidden");

@@ -1,5 +1,5 @@
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     const petList = document.getElementById("pet-list");
     const archivedPetList = document.getElementById("archived-pet-list");
     const petFormSection = document.getElementById("pet-form-section");
@@ -14,11 +14,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const sidebar = document.getElementById("sidebar");
     const sidebarToggle = document.getElementById("sidebar-toggle");
-
-    const token = sessionStorage.getItem("vetplatform_token");
+    const sessionRestored = await window.vetApi.ensureSession();
     const role = sessionStorage.getItem("vetplatform_role");
 
-    if (!token || role !== "CUSTOMER") {
+    if (!sessionRestored || role !== "CUSTOMER") {
         window.location.replace("login.html");
         return;
     }
@@ -33,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ...options,
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
+                "Authorization": "Bearer",
                 ...options.headers
             }
         });
@@ -50,7 +49,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (response.status === 401) {
-            sessionStorage.removeItem("vetplatform_token");
             sessionStorage.removeItem("vetplatform_role");
             sessionStorage.removeItem("vetplatform_email");
             sessionStorage.removeItem("vetplatform_user_id");

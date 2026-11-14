@@ -3,6 +3,18 @@
     {
       "source": "/",
       "destination": "/pages/index.html"
+    },
+    {
+      "source": "/login.html",
+      "destination": "/pages/login.html"
+    },
+    {
+      "source": "/register.html",
+      "destination": "/pages/register.html"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/pages/index.html"
     }
   ]
 }

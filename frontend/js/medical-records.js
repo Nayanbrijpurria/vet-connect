@@ -6,12 +6,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const petSelect = document.getElementById("record-pet");
     const fileInput = document.getElementById("record-file");
     const uploadButton = form?.querySelector("button[type=submit]");
-    const token = sessionStorage.getItem("vetplatform_token");
     if (!form || !message || !list || !summary || !petSelect || !fileInput) return;
-    if (!token || sessionStorage.getItem("vetplatform_role") !== "CUSTOMER") { window.location.replace("login.html"); return; }
+    if (!(await window.vetApi.ensureSession()) || sessionStorage.getItem("vetplatform_role") !== "CUSTOMER") { window.location.replace("login.html"); return; }
 
     async function request(path, options = {}) {
-        const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, ...options.headers } });
+        const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers: { Authorization: "Bearer", ...options.headers } });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || data.message || `Request failed (${response.status})`);
         return data;
@@ -31,7 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     function date(value) { return value ? new Date(value).toLocaleString() : "Date not provided"; }
     async function downloadDocument(record) {
-        const response = await fetch(`${API_BASE_URL}/api/documents/${encodeURIComponent(record.id)}/download`, { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(`${API_BASE_URL}/api/documents/${encodeURIComponent(record.id)}/download`, { headers: { Authorization: "Bearer" } });
         if (!response.ok) throw new Error("Could not download the document.");
         const objectUrl = URL.createObjectURL(await response.blob());
         const anchor = document.createElement("a"); anchor.href = objectUrl; anchor.download = record.originalFilename || "medical-document"; anchor.click();

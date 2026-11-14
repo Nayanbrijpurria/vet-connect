@@ -138,6 +138,19 @@ object UserRepository {
             }
         }
 
+    suspend fun hasActiveRole(userId: Long, role: String): Boolean =
+        withContext(Dispatchers.IO) {
+            DatabaseFactory.withConnection { connection ->
+                connection.prepareStatement(
+                    "SELECT 1 FROM users WHERE id = ? AND account_status = 'ACTIVE' AND role = ?"
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.setString(2, role)
+                    statement.executeQuery().use { it.next() }
+                }
+            }
+        }
+
 
     suspend fun createAdmin(
         fullName: String,

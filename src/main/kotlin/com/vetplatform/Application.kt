@@ -1,7 +1,6 @@
 
 package com.vetplatform
 
-import com.auth0.jwt.interfaces.Payload
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -13,7 +12,8 @@ import io.ktor.server.routing.routing
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.server.application.*
+import java.net.URI
+import kotlinx.coroutines.CancellationException
 
 fun Application.module() {
     FlywayFactory.migrate()
@@ -25,18 +25,11 @@ fun Application.configureApplication() {
 
 
     install(CORS) {
-
-        // Local development
-        allowHost("localhost:63342", schemes = listOf("http"))
-        allowHost("127.0.0.1:63342", schemes = listOf("http"))
-        allowHost("localhost:5500", schemes = listOf("http"))
-        allowHost("127.0.0.1:5500", schemes = listOf("http"))
-
-        // Production frontend - Vercel
-        allowHost(
-            "vet-connect-frontend-reemltg48.vercel.app",
-            schemes = listOf("https")
-        )
+        AuthSecurity.allowedOrigins.forEach { origin ->
+            val uri = URI(origin)
+            allowHost(uri.rawAuthority, schemes = listOf(uri.scheme))
+        }
+        allowCredentials = true
 
         // HTTP methods
         allowMethod(HttpMethod.Get)
@@ -49,6 +42,7 @@ fun Application.configureApplication() {
         // Allowed headers
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
+        allowHeader(AuthSecurity.CSRF_HEADER)
     }
 
 
@@ -65,6 +59,7 @@ fun Application.configureApplication() {
                 val userId = credential.payload
                     .getClaim("userId")
                     .asLong()
+                val subjectUserId = credential.payload.subject?.toLongOrNull()
 
                 val email = credential.payload
                     .getClaim("email")
@@ -74,12 +69,24 @@ fun Application.configureApplication() {
                     .getClaim("role")
                     .asString()
 
+                val activeRole = if (userId != null && !role.isNullOrBlank()) {
+                    try {
+                        UserRepository.hasActiveRole(userId, role)
+                    } catch (exception: CancellationException) {
+                        throw exception
+                    } catch (_: Exception) {
+                        false
+                    }
+                } else {
+                    false
+                }
+
                 if (userId != null &&
                     userId > 0 &&
+                    subjectUserId == userId &&
                     !email.isNullOrBlank() &&
                     !role.isNullOrBlank() &&
-                    runCatching { UserRepository.isAccountActive(userId) }
-                        .getOrDefault(false)
+                    activeRole
                 ) {
                     JWTPrincipal(credential.payload)
                 } else {

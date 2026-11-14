@@ -1,12 +1,12 @@
 // const API_BASE_URL = "https://vet-connect-production.up.railway.app";
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+    const sessionRestored = await window.vetApi.ensureSession();
     const email = sessionStorage.getItem("vetplatform_email");
     const role = sessionStorage.getItem("vetplatform_role");
-    const token = sessionStorage.getItem("vetplatform_token");
 
     // Frontend navigation check only; backend authorization remains essential.
-    if (!token || role !== "VET") {
+    if (!sessionRestored || role !== "VET") {
         window.location.replace("login.html");
         return;
     }
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("vet-profile-email").textContent = emailDisplay;
 
     const authHeaders = {
-        Authorization: `Bearer ${token}`,
+        Authorization: "Bearer",
         Accept: "application/json"
     };
 
@@ -991,7 +991,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     {
                         method: "POST",
                         headers: {
-                            Authorization: `Bearer ${token}`,
+                            Authorization: "Bearer",
                             Accept: "application/json"
                         },
                         body: formData
@@ -1025,14 +1025,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-    document.getElementById("vet-logout").addEventListener("click", function () {
-        sessionStorage.removeItem("vetplatform_token");
-        sessionStorage.removeItem("vetplatform_role");
-        sessionStorage.removeItem("vetplatform_email");
-        sessionStorage.removeItem("vetplatform_user_id");
-
-        window.location.replace("login.html");
-    });
+    document.getElementById("vet-logout").addEventListener("click", () => window.vetApi.logout());
 
 
     // Weekly availability management

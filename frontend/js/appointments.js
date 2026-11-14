@@ -1,5 +1,5 @@
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const form = document.getElementById("appointment-form");
     const message = document.getElementById("appointment-message");
     const list = document.getElementById("appointment-list");
@@ -7,10 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const vetSelect = document.getElementById("veterinarian-id");
     const dateInput = document.getElementById("appointment-date");
     const timeSelect = document.getElementById("appointment-time");
-    const token = sessionStorage.getItem("vetplatform_token");
+    const sessionRestored = await window.vetApi.ensureSession();
     const role = sessionStorage.getItem("vetplatform_role");
 
-    if (!token || role !== "CUSTOMER") {
+    if (!sessionRestored || role !== "CUSTOMER") {
         window.location.replace("login.html");
         return;
     }
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const headers = {
-        Authorization: `Bearer ${token}`,
+        Authorization: "Bearer",
         "Content-Type": "application/json"
     };
 
@@ -44,7 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(url, options);
 
         if (response.status === 401) {
-            sessionStorage.clear();
+            ["vetplatform_role", "vetplatform_email", "vetplatform_user_id"]
+                .forEach((key) => sessionStorage.removeItem(key));
             window.location.replace("login.html");
             throw new Error("Your session has expired. Please sign in again.");
         }

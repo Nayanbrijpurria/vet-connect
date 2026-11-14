@@ -25,6 +25,7 @@ import io.ktor.http.content.forEachPart
 import io.ktor.server.response.header
 import io.ktor.server.response.respondBytes
 import java.io.ByteArrayOutputStream
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 
 private const val MULTIPART_LIMIT_BUFFER_BYTES = 64L * 1024L
@@ -341,8 +342,16 @@ fun Route.configureRouting() {
                 return@post
             }
 
-            // Step 3: Generate JWT
-            val token = JwtService.generateToken(user)
+            // A browser receives only the short-lived access token in JSON.
+            val token = JwtService.generateAccessToken(user)
+            val refreshToken = JwtService.generateRefreshToken()
+            RefreshTokenRepository.expireOldSessions()
+            RefreshTokenRepository.createSession(
+                userId = user.id,
+                tokenHash = JwtService.hashRefreshToken(refreshToken),
+                expiresAt = Instant.now().plusSeconds(JwtService.REFRESH_TOKEN_EXPIRY_SECONDS)
+            )
+            AuthSecurity.appendRefreshCookie(call, refreshToken)
 
             // Step 4: Return login response
             call.respond(
@@ -356,6 +365,8 @@ fun Route.configureRouting() {
                 )
             )
 
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
 
             application.log.error("Customer login failed", exception)
@@ -364,6 +375,72 @@ fun Route.configureRouting() {
                 HttpStatusCode.InternalServerError,
                 AuthResponse(message = "Login failed")
             )
+        }
+    }
+
+    post("/api/auth/refresh") {
+        if (!AuthSecurity.isValidCookieRequest(call)) {
+            call.respond(HttpStatusCode.Forbidden, AuthResponse(message = AuthSecurity.CSRF_MESSAGE))
+            return@post
+        }
+
+        val oldToken = call.request.cookies[AuthSecurity.REFRESH_COOKIE]
+        if (oldToken.isNullOrBlank()) {
+            AuthSecurity.clearRefreshCookie(call)
+            call.respond(HttpStatusCode.Unauthorized, AuthResponse(message = "Authentication required"))
+            return@post
+        }
+
+        try {
+            val replacement = JwtService.generateRefreshToken()
+            val result = RefreshTokenRepository.rotate(
+                oldTokenHash = JwtService.hashRefreshToken(oldToken),
+                newTokenHash = JwtService.hashRefreshToken(replacement),
+                newExpiresAt = Instant.now().plusSeconds(JwtService.REFRESH_TOKEN_EXPIRY_SECONDS)
+            )
+            if (result.status != RefreshRotationStatus.ROTATED || result.user == null) {
+                AuthSecurity.clearRefreshCookie(call)
+                call.respond(HttpStatusCode.Unauthorized, AuthResponse(message = "Session expired or is no longer valid"))
+                return@post
+            }
+
+            AuthSecurity.appendRefreshCookie(call, replacement)
+            call.respond(
+                HttpStatusCode.OK,
+                AuthResponse(
+                    message = "Session refreshed",
+                    userId = result.user.userId,
+                    email = result.user.email,
+                    role = result.user.role,
+                    token = JwtService.generateAccessToken(result.user)
+                )
+            )
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            application.log.error("Refresh request failed")
+            AuthSecurity.clearRefreshCookie(call)
+            call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Unable to refresh session"))
+        }
+    }
+
+    post("/api/auth/logout") {
+        if (!AuthSecurity.isValidCookieRequest(call)) {
+            call.respond(HttpStatusCode.Forbidden, AuthResponse(message = AuthSecurity.CSRF_MESSAGE))
+            return@post
+        }
+        try {
+            call.request.cookies[AuthSecurity.REFRESH_COOKIE]
+                ?.takeIf(String::isNotBlank)
+                ?.let { RefreshTokenRepository.revokeFamilyByTokenHash(JwtService.hashRefreshToken(it)) }
+            AuthSecurity.clearRefreshCookie(call)
+            call.respond(HttpStatusCode.OK, AuthResponse(message = "Logged out"))
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            application.log.error("Logout request failed")
+            AuthSecurity.clearRefreshCookie(call)
+            call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Unable to log out"))
         }
     }
 
@@ -439,6 +516,28 @@ fun Route.configureRouting() {
 
 
     authenticate("auth-jwt") {
+
+        post("/api/auth/logout-all") {
+            if (!AuthSecurity.isValidCookieRequest(call)) {
+                call.respond(HttpStatusCode.Forbidden, AuthResponse(message = AuthSecurity.CSRF_MESSAGE))
+                return@post
+            }
+            val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+            if (userId == null || userId <= 0) {
+                call.respond(HttpStatusCode.Unauthorized, AuthResponse(message = "Authentication required"))
+                return@post
+            }
+            try {
+                RefreshTokenRepository.revokeAllForUser(userId)
+                AuthSecurity.clearRefreshCookie(call)
+                call.respond(HttpStatusCode.OK, AuthResponse(message = "All sessions logged out"))
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                application.log.error("Logout all sessions failed")
+                call.respond(HttpStatusCode.InternalServerError, AuthResponse(message = "Unable to log out"))
+            }
+        }
 
 
         post("/api/vets/time-off") {

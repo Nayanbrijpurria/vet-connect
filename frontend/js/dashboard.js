@@ -1,5 +1,5 @@
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     // 1. Mobile sidebar
     const sidebar = document.getElementById("sidebar");
     const toggleButton = document.getElementById("sidebar-toggle");
@@ -24,11 +24,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // 2. Check customer session
-    const token = sessionStorage.getItem("vetplatform_token");
+    const sessionRestored = await window.vetApi.ensureSession();
     const role = sessionStorage.getItem("vetplatform_role");
     const email = sessionStorage.getItem("vetplatform_email");
 
-    if (!token || role !== "CUSTOMER") {
+    if (!sessionRestored || role !== "CUSTOMER") {
         window.location.replace("login.html");
         return;
     }
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const response = await fetch(`${API_BASE_URL}/api/pets`, {
                 method: "GET",
                 headers: {
-                    "Authorization": `Bearer ${token}`,
+                    "Authorization": "Bearer",
                     "Accept": "application/json"
                 }
             });
@@ -82,7 +82,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
 
             if (response.status === 401) {
-                sessionStorage.removeItem("vetplatform_token");
                 sessionStorage.removeItem("vetplatform_role");
                 sessionStorage.removeItem("vetplatform_email");
                 sessionStorage.removeItem("vetplatform_user_id");
@@ -193,14 +192,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
+                        "Authorization": "Bearer",
                         "Accept": "application/json"
                     }
                 }
             );
 
             if (response.status === 401) {
-                sessionStorage.removeItem("vetplatform_token");
                 sessionStorage.removeItem("vetplatform_role");
                 sessionStorage.removeItem("vetplatform_email");
                 sessionStorage.removeItem("vetplatform_user_id");
@@ -335,14 +333,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
+                        "Authorization": "Bearer",
                         "Accept": "application/json"
                     }
                 }
             );
 
             if (petsResponse.status === 401) {
-                sessionStorage.removeItem("vetplatform_token");
                 sessionStorage.removeItem("vetplatform_role");
                 sessionStorage.removeItem("vetplatform_email");
                 sessionStorage.removeItem("vetplatform_user_id");
@@ -369,7 +366,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         {
                             method: "GET",
                             headers: {
-                                "Authorization": `Bearer ${token}`,
+                                "Authorization": "Bearer",
                                 "Accept": "application/json"
                             }
                         }
@@ -470,7 +467,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         } catch (error) {
             if (error.message === "SESSION_EXPIRED") {
-                sessionStorage.removeItem("vetplatform_token");
                 sessionStorage.removeItem("vetplatform_role");
                 sessionStorage.removeItem("vetplatform_email");
                 sessionStorage.removeItem("vetplatform_user_id");
@@ -493,13 +489,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const logoutButton = document.getElementById("logout-button");
 
     if (logoutButton) {
-        logoutButton.addEventListener("click", function () {
-            sessionStorage.removeItem("vetplatform_token");
-            sessionStorage.removeItem("vetplatform_role");
-            sessionStorage.removeItem("vetplatform_email");
-            sessionStorage.removeItem("vetplatform_user_id");
-
-            window.location.replace("login.html");
-        });
+        logoutButton.addEventListener("click", () => window.vetApi.logout());
     }
 });
