@@ -1,0 +1,116 @@
+.video-consultation {
+    min-height: 100vh;
+    background: #0b1525;
+    color: #fff;
+}
+
+.video-shell {
+    width: min(1100px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 24px 0;
+}
+
+.video-header,
+.video-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    min-height: 420px;
+    margin: 20px 0;
+}
+
+.video-tile {
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    background: #172033;
+}
+
+.video-tile video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remote-video-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 16px;
+    min-width: 0;
+}
+
+.remote-video-container:empty::after {
+    content: "Waiting for the other participant…";
+    display: grid;
+    min-height: 300px;
+    place-items: center;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    background: #172033;
+}
+
+.remote-video-container .video-tile video {
+    display: block;
+}
+
+.remote-audio-container {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.video-status {
+    min-height: 24px;
+    margin: 12px 0;
+}
+
+.video-preview,
+.video-waiting {
+    min-height: 420px;
+}
+
+.video-preview video {
+    width: 100%;
+    max-height: 420px;
+    border-radius: 16px;
+    background: #172033;
+    object-fit: cover;
+}
+
+.video-controls button,
+.video-controls select {
+    min-height: 44px;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 700px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+    .video-tile {
+        min-height: 240px;
+    }
+    .remote-video-container:empty::after {
+        min-height: 240px;
+    }
+    .video-header,
+    .video-controls {
+        flex-wrap: wrap;
+    }
+}

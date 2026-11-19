@@ -50,6 +50,7 @@ dependencies {
     // Google Identity Services ID-token verification
     implementation("com.google.api-client:google-api-client:2.9.2")
     implementation("com.google.http-client:google-http-client-gson:2.0.0")
+    implementation("io.livekit:livekit-server:0.10.0")
 
 
     // Tests

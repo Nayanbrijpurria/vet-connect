@@ -533,6 +533,15 @@ document.addEventListener("DOMContentLoaded", async function () {
                 const scheduledStart = getValue(appointment, ["scheduledStart"]);
                 const startDate = scheduledStart ? new Date(scheduledStart) : null;
 
+                if (appointmentStatus === "CONFIRMED" && appointmentId != null) {
+                    const meeting = document.createElement("a");
+                    meeting.href =
+                        `video-consultation.html?appointmentId=${encodeURIComponent(appointmentId)}`;
+                    meeting.className = "btn btn-primary";
+                    meeting.textContent = "Open video consultation";
+                    card.appendChild(meeting);
+                }
+
                 if (
                     appointmentStatus === "CONFIRMED" &&
                     startDate &&

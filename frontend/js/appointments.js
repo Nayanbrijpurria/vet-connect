@@ -395,7 +395,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 card.append(title, date, status, pet, fee);
 
-                if (appointment.meetingUrl) {
+                if (appointment.status === "CONFIRMED") {
+                    const meeting = document.createElement("a");
+                    meeting.href =
+                        `video-consultation.html?appointmentId=${encodeURIComponent(appointment.id)}`;
+                    meeting.textContent = "Open video consultation";
+                    meeting.className = "btn btn-primary";
+                    card.appendChild(meeting);
+                } else if (appointment.meetingUrl) {
                     const meeting = document.createElement("a");
                     meeting.href = appointment.meetingUrl;
                     meeting.textContent = "Join online consultation";

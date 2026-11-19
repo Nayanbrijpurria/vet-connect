@@ -2,6 +2,7 @@
 package com.vetplatform
 
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.log
 import io.ktor.server.application.ApplicationCall
@@ -10,6 +11,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.routing.get
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.auth.authenticate
@@ -75,6 +77,63 @@ fun Route.configureRouting() {
             """{"status":"ok","service":"vet-platform"}""",
             contentType = ContentType.Application.Json
         )
+    }
+
+    post("/api/livekit/webhook") {
+        val body = try {
+            call.receiveText()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            application.log.warn("Unable to read LiveKit webhook", exception)
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid webhook payload"))
+            return@post
+        }
+        val event = try {
+            LiveKitVideoProvider.verifyWebhook(body, call.request.headers[HttpHeaders.Authorization])
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid LiveKit webhook"))
+            return@post
+        } catch (exception: Exception) {
+            application.log.warn("LiveKit webhook rejected", exception)
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid webhook payload"))
+            return@post
+        }
+        if (event.id.isBlank()) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Webhook event ID is required"))
+            return@post
+        }
+        val roomName = if (event.hasRoom()) event.room.name else null
+        val participantIdentity = if (event.hasParticipant()) event.participant.identity else null
+        val inserted = try {
+            VideoRepository.processWebhookEvent(
+                eventId = event.id,
+                eventType = event.event,
+                roomName = roomName,
+                participantIdentity = participantIdentity,
+                occurredAt = Instant.ofEpochSecond(event.createdAt)
+            )
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            application.log.error("LiveKit webhook processing failed; event will be retried", exception)
+            call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to "Webhook processing temporarily unavailable"))
+            return@post
+        }
+        if (inserted) {
+            when (event.event) {
+                "room_started" -> roomName?.let {
+                    application.log.info("LiveKit room started")
+                }
+                "participant_joined" -> application.log.info("LiveKit participant joined")
+                "participant_left", "participant_disconnected" ->
+                    application.log.info("LiveKit participant disconnected")
+                "room_finished" -> application.log.info("LiveKit room ended")
+            }
+        }
+        call.respond(HttpStatusCode.OK, mapOf("received" to true))
     }
 
     post("/api/auth/register") {
@@ -611,6 +670,155 @@ fun Route.configureRouting() {
 
 
     authenticate("auth-jwt") {
+
+        get("/api/appointments/{appointmentId}/video") {
+            val userId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val appointmentId = call.parameters["appointmentId"]?.toLongOrNull()
+            if (userId == null || appointmentId == null || appointmentId <= 0) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid appointment ID is required"))
+                return@get
+            }
+            val appointment = VideoRepository.getAppointment(appointmentId)
+            if (appointment == null) {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Appointment not found"))
+                return@get
+            }
+            val role = UserRepository.findRoleById(userId)
+            val authorized = isAuthorizedVideoParticipant(
+                appointment = appointment,
+                userId = userId,
+                role = role,
+                accountActive = UserRepository.isAccountActive(userId),
+                veterinarianApproved = role == "VET" && VetRepository.isVetApproved(userId)
+            )
+            if (!authorized) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "You do not have access to this appointment"))
+                return@get
+            }
+            if (!isVideoAppointmentEligible(appointment)) {
+                call.respond(HttpStatusCode.Conflict, mapOf("error" to "The appointment is not eligible for video consultation"))
+                return@get
+            }
+            val session = VideoRepository.getOrCreateSession(appointment)
+            val now = Instant.now()
+            val earlyMinutes = System.getenv("VIDEO_JOIN_EARLY_MINUTES")?.toIntOrNull()?.coerceIn(0, 1440) ?: 10
+            val lateMinutes = System.getenv("VIDEO_JOIN_LATE_MINUTES")?.toIntOrNull()?.coerceIn(0, 1440) ?: 15
+            val joinAvailable = isWithinVideoJoinWindow(
+                now,
+                appointment.scheduledStart,
+                earlyMinutes,
+                lateMinutes
+            )
+            call.respond(HttpStatusCode.OK, VideoSessionResponse(
+                appointmentId = appointmentId,
+                status = session.status,
+                scheduledStart = appointment.scheduledStart.toString(),
+                scheduledEnd = appointment.scheduledEnd.toString(),
+                joinAvailable = joinAvailable
+            ))
+        }
+
+        post("/api/appointments/{appointmentId}/video/join") {
+            val userId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val appointmentId = call.parameters["appointmentId"]?.toLongOrNull()
+            if (userId == null || appointmentId == null || appointmentId <= 0) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid appointment ID is required"))
+                return@post
+            }
+            try {
+                val appointment = VideoRepository.getAppointment(appointmentId)
+                if (appointment == null) {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Appointment not found"))
+                    return@post
+                }
+                val role = UserRepository.findRoleById(userId)
+                val authorized = isAuthorizedVideoParticipant(
+                    appointment = appointment,
+                    userId = userId,
+                    role = role,
+                    accountActive = UserRepository.isAccountActive(userId),
+                    veterinarianApproved = role == "VET" && VetRepository.isVetApproved(userId)
+                )
+                if (!authorized) {
+                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "You are not authorized to join this consultation"))
+                    return@post
+                }
+                if (!isVideoAppointmentEligible(appointment)) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "The appointment is not eligible for video consultation"))
+                    return@post
+                }
+                val now = Instant.now()
+                val earlyMinutes = System.getenv("VIDEO_JOIN_EARLY_MINUTES")?.toIntOrNull()?.coerceIn(0, 1440) ?: 10
+                val lateMinutes = System.getenv("VIDEO_JOIN_LATE_MINUTES")?.toIntOrNull()?.coerceIn(0, 1440) ?: 15
+                if (!isWithinVideoJoinWindow(now, appointment.scheduledStart, earlyMinutes, lateMinutes)) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "The consultation is outside the permitted join window"))
+                    return@post
+                }
+                val session = VideoRepository.getOrCreateSession(appointment)
+                if (session.status == VideoSessionStatus.ENDED || session.status == VideoSessionStatus.EXPIRED) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "This video consultation has ended"))
+                    return@post
+                }
+                val participantRole = role ?: error("Authenticated role is missing")
+                val participantIdentity = "${participantRole.lowercase()}-$userId"
+                val ttlSeconds = System.getenv("VIDEO_TOKEN_TTL_SECONDS")?.toLongOrNull()?.coerceIn(60L, 900L) ?: 900L
+                val liveKitToken = LiveKitVideoProvider.createParticipantToken(
+                    roomName = session.roomName,
+                    participantIdentity = participantIdentity,
+                    ttlSeconds = ttlSeconds
+                )
+                VideoRepository.recordParticipant(session.id, userId, participantRole, participantIdentity)
+                call.respond(HttpStatusCode.OK, VideoJoinResponse(
+                    appointmentId = appointmentId,
+                    roomName = session.roomName,
+                    serverUrl = LiveKitVideoProvider.serverUrl,
+                    participantToken = liveKitToken.token,
+                    participantIdentity = participantIdentity,
+                    expiresIn = liveKitToken.expiresInSeconds
+                ))
+            } catch (exception: IllegalStateException) {
+                application.log.error("LiveKit configuration or provisioning failed", exception)
+                call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to "Video consultation is temporarily unavailable"))
+            } catch (exception: Exception) {
+                application.log.error("Failed to join video consultation", exception)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to join video consultation"))
+            }
+        }
+
+        post("/api/appointments/{appointmentId}/video/end") {
+            val userId = call.principal<JWTPrincipal>()?.payload?.subject?.toLongOrNull()
+            val appointmentId = call.parameters["appointmentId"]?.toLongOrNull()
+            if (userId == null || appointmentId == null || appointmentId <= 0) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid appointment ID is required"))
+                return@post
+            }
+            val appointment = VideoRepository.getAppointment(appointmentId)
+            val role = UserRepository.findRoleById(userId)
+            val authorized = role == "VET" &&
+                UserRepository.isAccountActive(userId) &&
+                appointment?.vetUserId == userId &&
+                VetRepository.isVetApproved(userId)
+            if (appointment == null || !authorized) {
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "You are not authorized to end this consultation"))
+                return@post
+            }
+            try {
+                val session = VideoRepository.getSession(appointmentId)
+                if (session == null || session.status == VideoSessionStatus.ENDED) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Video session ended"))
+                    return@post
+                }
+                LiveKitVideoProvider.endRoom(session.roomName)
+                VideoRepository.endSession(appointmentId)
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Video session ended"))
+            } catch (exception: Exception) {
+                application.log.error("Unable to end LiveKit consultation", exception)
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    mapOf("error" to "Unable to end the video consultation right now")
+                )
+            }
+        }
 
         post("/api/auth/google/link") {
             if (!AuthSecurity.isValidCookieRequest(call)) {
@@ -3473,4 +3681,3 @@ private suspend fun io.ktor.server.routing.RoutingContext.updateVetSuspension(su
         call.respond(HttpStatusCode.InternalServerError, AuthResponse("Unable to change veterinarian status"))
     }
 }
-

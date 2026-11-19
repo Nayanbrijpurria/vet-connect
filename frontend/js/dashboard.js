@@ -294,6 +294,14 @@ document.addEventListener("DOMContentLoaded", async function () {
                         : "Pet details unavailable";
 
                 card.append(heading, date, status, pet);
+                if (appointmentStatus === "CONFIRMED") {
+                    const meeting = document.createElement("a");
+                    meeting.href =
+                        `video-consultation.html?appointmentId=${encodeURIComponent(appointment.id)}`;
+                    meeting.className = "btn btn-primary";
+                    meeting.textContent = "Open video consultation";
+                    card.appendChild(meeting);
+                }
                 dashboardAppointmentsElement.appendChild(card);
             });
 

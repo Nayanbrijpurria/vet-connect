@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Consultation | VetPlatform</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/video-consultation.css">
+</head>
+<body class="video-consultation">
+<main class="video-shell">
+    <header class="video-header">
+        <div>
+            <p>VetPlatform video consultation</p>
+            <h1 id="video-title">Consultation</h1>
+        </div>
+        <a id="video-back" class="btn btn-secondary" href="appointments.html">Back</a>
+    </header>
+
+    <p id="video-status" class="video-status" role="status" aria-live="polite">Loading consultation...</p>
+
+    <section id="waiting-room" class="video-waiting" aria-label="Waiting room">
+        <div class="video-preview">
+            <video id="preview-video" autoplay muted playsinline></video>
+        </div>
+        <div class="video-controls">
+            <button id="toggle-preview-mic" type="button" class="btn btn-secondary">Mute microphone</button>
+            <button id="toggle-preview-camera" type="button" class="btn btn-secondary">Turn camera off</button>
+            <button id="join-call" type="button" class="btn btn-primary">Ready to join</button>
+        </div>
+    </section>
+
+    <section id="call-room" hidden aria-label="Active consultation">
+        <div id="video-grid" class="video-grid">
+            <article class="video-tile" aria-label="Your video">
+                <video id="local-video" autoplay muted playsinline></video>
+            </article>
+            <div id="remote-video-container" class="remote-video-container" aria-label="Other participants"></div>
+        </div>
+        <div class="video-controls">
+            <button id="toggle-mic" type="button" class="btn btn-secondary">Mute microphone</button>
+            <button id="toggle-camera" type="button" class="btn btn-secondary">Turn camera off</button>
+            <button id="enable-audio" type="button" class="btn btn-secondary" hidden>Enable consultation audio</button>
+            <button id="leave-call" type="button" class="btn btn-danger">Leave consultation</button>
+        </div>
+        <div id="remote-audio-container" class="remote-audio-container" aria-label="Remote audio"></div>
+    </section>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/api-client.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.24.1/dist/livekit-client.umd.min.js"></script>
+<script src="../js/video-consultation.js"></script>
+</body>
+</html>
