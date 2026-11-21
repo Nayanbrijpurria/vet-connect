@@ -15,4 +15,4 @@ enum class VetVerificationStatus { PENDING, APPROVED, REJECTED, SUSPENDED }
 enum class CredentialDocumentType { DEGREE_CERTIFICATE, REGISTRATION_CERTIFICATE, ADDITIONAL_CERTIFICATE }
 
 @Serializable
-enum class AppointmentStatus { PENDING, CONFIRMED, CANCELLED, COMPLETED }
+enum class AppointmentStatus { PENDING, CONFIRMED, CANCELLED, COMPLETED, REJECTED }

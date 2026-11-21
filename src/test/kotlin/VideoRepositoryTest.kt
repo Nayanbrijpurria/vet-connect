@@ -29,10 +29,35 @@ class VideoRepositoryTest {
     }
 
     @Test
+    fun `missing or blank LiveKit configuration is reported as an application state error`() {
+        assertEquals(
+            "wss://livekit.example",
+            configuredVideoValue("LIVEKIT_URL", "wss://livekit.example")
+        )
+        val missing = assertFailsWith<IllegalStateException> {
+            configuredVideoValue("LIVEKIT_API_SECRET", null)
+        }
+        assertEquals("LIVEKIT_API_SECRET is not configured", missing.message)
+
+        assertFailsWith<IllegalStateException> {
+            configuredVideoValue("LIVEKIT_API_KEY", " ")
+        }
+    }
+
+    @Test
     fun `only confirmed appointments are eligible and join window uses appointment instant`() {
         kotlin.test.assertTrue(isVideoAppointmentEligible(appointment))
         kotlin.test.assertFalse(isVideoAppointmentEligible(appointment.copy(status = AppointmentStatus.CANCELLED)))
         kotlin.test.assertFalse(isVideoAppointmentEligible(appointment.copy(status = AppointmentStatus.COMPLETED)))
+        kotlin.test.assertFalse(isVideoAppointmentEligible(appointment.copy(status = AppointmentStatus.REJECTED)))
+    }
+
+    @Test
+    fun `rejected database appointment status maps safely and cannot join video`() {
+        val rejectedStatus = AppointmentStatus.valueOf("REJECTED")
+
+        assertEquals(AppointmentStatus.REJECTED, rejectedStatus)
+        kotlin.test.assertFalse(isVideoAppointmentEligible(appointment.copy(status = rejectedStatus)))
 
         assertEquals(
             true,

@@ -102,7 +102,12 @@ const roomEvents = {
     Disconnected: "Disconnected"
 };
 
-function boot({ role = "CUSTOMER", failMicrophone = false } = {}) {
+function boot({
+    role = "CUSTOMER",
+    failMicrophone = false,
+    failJoinRequests = 0,
+    deferJoinResponse = false
+} = {}) {
     const ids = [
         "video-status", "waiting-room", "call-room", "preview-video", "local-video",
         "remote-video-container", "remote-audio-container", "join-call", "enable-audio",
@@ -114,8 +119,10 @@ function boot({ role = "CUSTOMER", failMicrophone = false } = {}) {
     const rooms = [];
     const navigations = [];
     let ready;
+    let releaseJoinResponse;
     let mediaId = 0;
     let failMicrophoneOnce = failMicrophone;
+    let remainingJoinFailures = failJoinRequests;
 
     class FakeRoom {
         constructor() {
@@ -235,6 +242,19 @@ function boot({ role = "CUSTOMER", failMicrophone = false } = {}) {
         console,
         fetch: async (url, options) => {
             fetches.push({ url, options });
+            if (remainingJoinFailures > 0) {
+                remainingJoinFailures -= 1;
+                return {
+                    ok: false,
+                    status: 500,
+                    async json() {
+                        return { error: "Unable to join video consultation" };
+                    }
+                };
+            }
+            if (deferJoinResponse) {
+                await new Promise(resolve => { releaseJoinResponse = resolve; });
+            }
             return {
                 ok: true,
                 async json() {
@@ -254,6 +274,7 @@ function boot({ role = "CUSTOMER", failMicrophone = false } = {}) {
         rooms,
         navigations,
         async ready() { await ready(); },
+        releaseJoinResponse() { releaseJoinResponse?.(); },
         get mediaId() { return mediaId; }
     };
 }
@@ -319,6 +340,38 @@ test("media permission failure disconnects, stops acquired tracks and permits a 
     await app.elements.get("join-call").click();
     assert.equal(app.rooms.length, 2);
     assert.equal(app.elements.get("call-room").hidden, false);
+});
+
+test("HTTP 500 displays a safe error, restores the join button and permits retry", async () => {
+    const app = boot({ failJoinRequests: 1 });
+    await app.ready();
+
+    await app.elements.get("join-call").click();
+
+    assert.equal(app.rooms.length, 0);
+    assert.equal(app.elements.get("join-call").disabled, false);
+    assert.equal(
+        app.elements.get("video-status").textContent,
+        "Unable to join video consultation"
+    );
+
+    await app.elements.get("join-call").click();
+    assert.equal(app.rooms.length, 1);
+    assert.equal(app.elements.get("call-room").hidden, false);
+});
+
+test("repeated clicks while the join request is pending send only one request", async () => {
+    const app = boot({ deferJoinResponse: true });
+    await app.ready();
+
+    const firstClick = app.elements.get("join-call").click();
+    const secondClick = app.elements.get("join-call").click();
+    await Promise.resolve();
+
+    assert.equal(app.fetches.length, 1);
+    app.releaseJoinResponse();
+    await Promise.all([firstClick, secondClick]);
+    assert.equal(app.rooms.length, 1);
 });
 
 test("leaving disconnects and returns to appointments without ending the shared session", async () => {

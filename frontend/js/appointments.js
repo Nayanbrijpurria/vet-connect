@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const vetSelect = document.getElementById("veterinarian-id");
     const dateInput = document.getElementById("appointment-date");
     const timeSelect = document.getElementById("appointment-time");
+    const availabilityTimezone = document.getElementById("availability-timezone");
     const sessionRestored = await window.vetApi.ensureSession();
     const role = sessionStorage.getItem("vetplatform_role");
 
@@ -165,6 +166,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     let availabilityRequestId = 0;
+    let activeAvailabilityRequest = null;
+    let availabilityErrorMessage = null;
 
     async function loadAvailableSlots() {
         const requestId = ++availabilityRequestId;
@@ -178,27 +181,60 @@ document.addEventListener("DOMContentLoaded", async () => {
         const selectedDate = dateInput.value;
 
         if (!vetUserId || !selectedDate) {
+            activeAvailabilityRequest?.controller.abort();
+            activeAvailabilityRequest = null;
             return;
         }
 
+        if (availabilityTimezone) {
+            availabilityTimezone.textContent =
+                "Selected date and appointment times use the veterinarian's local timezone.";
+        }
         timeSelect.replaceChildren(
             new Option("Loading available times…", "")
         );
 
+        let availabilityRequestForCall = null;
         try {
             const url =
                 `${API_BASE_URL}/api/vets/${encodeURIComponent(vetUserId)}` +
                 `/available-slots?date=${encodeURIComponent(selectedDate)}`;
 
-            const data = await fetchJson(url);
+            const requestKey = `${vetUserId}\u0000${selectedDate}`;
+            let availabilityRequest = activeAvailabilityRequest;
+            if (availabilityRequest?.key !== requestKey) {
+                availabilityRequest?.controller.abort();
+                const controller = new AbortController();
+                availabilityRequest = {
+                    key: requestKey,
+                    controller,
+                    promise: fetchJson(url, { signal: controller.signal })
+                };
+                activeAvailabilityRequest = availabilityRequest;
+            }
+            availabilityRequestForCall = availabilityRequest;
+
+            const data = await availabilityRequest.promise;
 
             // Ignore an outdated response if the user changed their selection.
             if (requestId !== availabilityRequestId) {
                 return;
             }
 
-            if (!Array.isArray(data.slots)) {
+            if (!Array.isArray(data.slots) || typeof data.timezone !== "string" || !data.timezone) {
                 throw new Error("Invalid availability response.");
+            }
+
+            if (
+                availabilityErrorMessage &&
+                message.textContent === availabilityErrorMessage
+            ) {
+                message.textContent = "";
+            }
+            availabilityErrorMessage = null;
+            if (availabilityTimezone) {
+                availabilityTimezone.textContent =
+                    `Selected date and appointment times use the veterinarian's local timezone (${data.timezone}).`;
             }
 
             timeSelect.replaceChildren();
@@ -212,9 +248,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             timeSelect.add(new Option("Choose an available time", ""));
 
-            data.slots.forEach(slot => {
+            const formatterOptions = {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+                timeZone: data.timezone
+            };
+            const formatter = new Intl.DateTimeFormat("en-IN", formatterOptions);
+            const disambiguatingFormatter = new Intl.DateTimeFormat("en-IN", {
+                ...formatterOptions,
+                timeZoneName: "short"
+            });
+            const formattedSlots = data.slots.flatMap(slot => {
                 if (!slot.start || !slot.end) {
-                    return;
+                    return [];
                 }
 
                 const startDate = new Date(slot.start);
@@ -224,18 +271,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                     Number.isNaN(startDate.getTime()) ||
                     Number.isNaN(endDate.getTime())
                 ) {
-                    return;
+                    return [];
                 }
 
-                const formatter = new Intl.DateTimeFormat("en-IN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                    timeZone: data.timezone
-                });
+                return [{
+                    slot,
+                    startDate,
+                    endDate,
+                    startLabel: formatter.format(startDate)
+                }];
+            });
+            const startLabelCounts = new Map();
+            formattedSlots.forEach(({ startLabel }) => {
+                startLabelCounts.set(startLabel, (startLabelCounts.get(startLabel) || 0) + 1);
+            });
 
+            formattedSlots.forEach(({ slot, startDate, endDate, startLabel }) => {
+                const selectedFormatter = startLabelCounts.get(startLabel) > 1
+                    ? disambiguatingFormatter
+                    : formatter;
                 const label =
-                    `${formatter.format(startDate)} – ${formatter.format(endDate)}`;
+                    `${selectedFormatter.format(startDate)} – ${selectedFormatter.format(endDate)}`;
 
                 // Store the complete timestamps for the future booking request.
                 const option = new Option(label, slot.start);
@@ -255,13 +311,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (requestId !== availabilityRequestId) {
                 return;
             }
+            if (error.name === "AbortError") {
+                return;
+            }
 
             timeSelect.disabled = true;
             timeSelect.replaceChildren(
                 new Option("Unable to load available times", "")
             );
 
-            message.textContent = error.message;
+            availabilityErrorMessage = error.message;
+            message.textContent = availabilityErrorMessage;
+        } finally {
+            if (
+                requestId === availabilityRequestId &&
+                activeAvailabilityRequest === availabilityRequestForCall
+            ) {
+                activeAvailabilityRequest = null;
+            }
         }
     }
 

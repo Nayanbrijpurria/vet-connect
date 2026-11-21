@@ -21,6 +21,10 @@ data class LiveKitToken(
     val expiresInSeconds: Long
 )
 
+internal fun configuredVideoValue(name: String, value: String?): String =
+    value?.takeIf { it.isNotBlank() }
+        ?: throw IllegalStateException("$name is not configured")
+
 interface VideoProvider {
     fun createParticipantToken(
         roomName: String,
@@ -35,13 +39,13 @@ interface VideoProvider {
 
 object LiveKitVideoProvider : VideoProvider {
     private fun apiKey(): String =
-        requireNotNull(System.getenv("LIVEKIT_API_KEY")) { "LIVEKIT_API_KEY is not configured" }
+        configuredVideoValue("LIVEKIT_API_KEY", System.getenv("LIVEKIT_API_KEY"))
 
     private fun apiSecret(): String =
-        requireNotNull(System.getenv("LIVEKIT_API_SECRET")) { "LIVEKIT_API_SECRET is not configured" }
+        configuredVideoValue("LIVEKIT_API_SECRET", System.getenv("LIVEKIT_API_SECRET"))
 
     val serverUrl: String
-        get() = requireNotNull(System.getenv("LIVEKIT_URL")) { "LIVEKIT_URL is not configured" }
+        get() = configuredVideoValue("LIVEKIT_URL", System.getenv("LIVEKIT_URL"))
 
     override fun createParticipantToken(
         roomName: String,

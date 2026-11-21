@@ -29,7 +29,9 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respondBytes
 import java.io.ByteArrayOutputStream
 import java.time.Instant
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 
 private suspend fun ApplicationCall.respondGoogleAuthentication(account: GoogleAccount) {
     val loginUser = LoginUser(
@@ -620,6 +622,10 @@ fun Route.configureRouting() {
 
     // Public endpoint: retrieve available appointment slots for a vet and date.
     get("/api/vets/{vetUserId}/available-slots") {
+        val requestId = UUID.randomUUID().toString()
+        call.response.headers.append("X-Request-ID", requestId)
+        val requestStartedAt = System.nanoTime()
+        var failureStage = "request_validation"
         try {
             val vetUserId = call.parameters["vetUserId"]
                 ?.toLongOrNull()
@@ -640,21 +646,62 @@ fun Route.configureRouting() {
                 )
             }
 
+            failureStage = "availability_repository"
             val result =
                 AppointmentAvailabilityRepository.getAvailableSlots(
                     vetUserId = vetUserId,
-                    date = date
+                    date = date,
+                    requestId = requestId
                 )
 
+            failureStage = "response_serialization"
             call.respond(HttpStatusCode.OK, result)
+            application.log.info(
+                "appointment_availability_request_completed request_id={} vet_user_id={} requested_date={} status=200 slot_count={} total_ms={}",
+                requestId,
+                vetUserId,
+                date,
+                result.slots.size,
+                (System.nanoTime() - requestStartedAt) / 1_000_000L
+            )
+        } catch (exception: TimeoutCancellationException) {
+            application.log.warn(
+                "appointment_availability_request_timed_out request_id={} stage={} total_ms={}",
+                requestId,
+                failureStage,
+                (System.nanoTime() - requestStartedAt) / 1_000_000L
+            )
+            call.respond(
+                HttpStatusCode.GatewayTimeout,
+                mapOf("error" to "Availability lookup timed out; please retry")
+            )
+        } catch (exception: CancellationException) {
+            application.log.info(
+                "appointment_availability_request_cancelled request_id={} stage={} total_ms={}",
+                requestId,
+                failureStage,
+                (System.nanoTime() - requestStartedAt) / 1_000_000L
+            )
+            throw exception
         } catch (exception: IllegalArgumentException) {
             call.respond(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to (exception.message ?: "Invalid request"))
             )
+            application.log.info(
+                "appointment_availability_request_rejected request_id={} stage={} exception_type={} total_ms={}",
+                requestId,
+                failureStage,
+                exception.javaClass.simpleName,
+                (System.nanoTime() - requestStartedAt) / 1_000_000L
+            )
         } catch (exception: Exception) {
             application.log.error(
-                "Failed to retrieve appointment availability",
+                "appointment_availability_request_failed request_id={} stage={} exception_type={} total_ms={}",
+                requestId,
+                failureStage,
+                exception.javaClass.simpleName,
+                (System.nanoTime() - requestStartedAt) / 1_000_000L,
                 exception
             )
 
@@ -725,12 +772,16 @@ fun Route.configureRouting() {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to "A valid appointment ID is required"))
                 return@post
             }
+            val requestId = UUID.randomUUID().toString()
+            call.response.headers.append("X-Request-ID", requestId)
+            var failureCategory = "appointment_lookup"
             try {
                 val appointment = VideoRepository.getAppointment(appointmentId)
                 if (appointment == null) {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Appointment not found"))
                     return@post
                 }
+                failureCategory = "participant_authorization"
                 val role = UserRepository.findRoleById(userId)
                 val authorized = isAuthorizedVideoParticipant(
                     appointment = appointment,
@@ -743,6 +794,7 @@ fun Route.configureRouting() {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "You are not authorized to join this consultation"))
                     return@post
                 }
+                failureCategory = "appointment_eligibility"
                 if (!isVideoAppointmentEligible(appointment)) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "The appointment is not eligible for video consultation"))
                     return@post
@@ -754,6 +806,7 @@ fun Route.configureRouting() {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "The consultation is outside the permitted join window"))
                     return@post
                 }
+                failureCategory = "session_provisioning"
                 val session = VideoRepository.getOrCreateSession(appointment)
                 if (session.status == VideoSessionStatus.ENDED || session.status == VideoSessionStatus.EXPIRED) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "This video consultation has ended"))
@@ -762,12 +815,15 @@ fun Route.configureRouting() {
                 val participantRole = role ?: error("Authenticated role is missing")
                 val participantIdentity = "${participantRole.lowercase()}-$userId"
                 val ttlSeconds = System.getenv("VIDEO_TOKEN_TTL_SECONDS")?.toLongOrNull()?.coerceIn(60L, 900L) ?: 900L
+                failureCategory = "token_generation"
                 val liveKitToken = LiveKitVideoProvider.createParticipantToken(
                     roomName = session.roomName,
                     participantIdentity = participantIdentity,
                     ttlSeconds = ttlSeconds
                 )
+                failureCategory = "participant_recording"
                 VideoRepository.recordParticipant(session.id, userId, participantRole, participantIdentity)
+                failureCategory = "response_serialization"
                 call.respond(HttpStatusCode.OK, VideoJoinResponse(
                     appointmentId = appointmentId,
                     roomName = session.roomName,
@@ -776,11 +832,17 @@ fun Route.configureRouting() {
                     participantIdentity = participantIdentity,
                     expiresIn = liveKitToken.expiresInSeconds
                 ))
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: IllegalStateException) {
-                application.log.error("LiveKit configuration or provisioning failed", exception)
+                application.log.error(
+                    "video_join_failed request_id=$requestId endpoint=POST /api/appointments/{appointmentId}/video/join category=$failureCategory exception_type=${exception.javaClass.simpleName}"
+                )
                 call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to "Video consultation is temporarily unavailable"))
             } catch (exception: Exception) {
-                application.log.error("Failed to join video consultation", exception)
+                application.log.error(
+                    "video_join_failed request_id=$requestId endpoint=POST /api/appointments/{appointmentId}/video/join category=$failureCategory exception_type=${exception.javaClass.simpleName}"
+                )
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Unable to join video consultation"))
             }
         }

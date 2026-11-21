@@ -65,6 +65,17 @@ class ServerTest {
     }
 
     @Test
+    fun `availability route rejects invalid veterinarian IDs and dates without database access`() = testApplication {
+        application { configureApplication() }
+
+        val invalidVet = client.get("/api/vets/not-a-vet/available-slots?date=2026-11-23")
+        val invalidDate = client.get("/api/vets/8/available-slots?date=2026-02-30")
+
+        assertEquals(HttpStatusCode.BadRequest, invalidVet.status)
+        assertEquals(HttpStatusCode.BadRequest, invalidDate.status)
+    }
+
+    @Test
     fun `Google sign-in rejects requests without the VetConnect origin and CSRF header`() = testApplication {
         application { configureApplication() }
 
