@@ -1,31 +1,19 @@
 # vetplatform
 
-This project was created using the [Ktor Project Generator](https://start.ktor.io).
+## Home Page
 
-Here are some useful links to get you started:
- * [Ktor Documentation](https://ktor.io/docs/home.html)
- * [Ktor GitHub page](https://github.com/ktorio/ktor)
- * [Ktor Slack chat](https://app.slack.com/client/T09229ZC6/C0A974TJ9). [Request an invite](https://surveys.jetbrains.com/s3/kotlin-slack-sign-up).
+<img width="944" height="492" alt="Screenshot 2026-11-23 194831" src="https://github.com/user-attachments/assets/b14eb460-76b9-4c5c-a705-6d19302111bc" />
 
-
-## Features
-Here's a list of features included in this project:
-
-| Name | Description |
-|------|-------------|
-
-## Building & Running
-To build or run the project, use one of the following tasks:
+<img width="546" height="482" alt="Screenshot 2026-11-23 194913" src="https://github.com/user-attachments/assets/4833bf4f-d8cf-4157-963a-9fa0413d126f" />
 
 
-| Task | Description |
-|------|-------------|
-| `./gradlew test`    | Run the tests     |
-| `./gradlew build`   | Build the project |
-| `./gradlew run`     | Run the server    |
+## Login Page
 
-If the server starts successfully, you'll see the following output:
-```
-2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
-2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
-```
+<img width="431" height="454" alt="Screenshot 2026-11-23 193854" src="https://github.com/user-attachments/assets/6f82abaf-17df-4665-adaf-0d9495a94690" />
+
+
+## User Dashboard
+
+<img width="944" height="492" alt="Screenshot 2026-11-23 194013" src="https://github.com/user-attachments/assets/a798926e-853d-4640-bc0f-082ed65fc90d" />
+
+<img width="943" height="493" alt="Screenshot 2026-11-23 194027" src="https://github.com/user-attachments/assets/900c35cc-7723-49b8-b145-b02fd851b536" />
