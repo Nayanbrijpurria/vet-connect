@@ -32,6 +32,17 @@
 <img width="939" height="496" alt="Screenshot 2026-11-23 194429" src="https://github.com/user-attachments/assets/9496e12c-8b22-4b35-ab73-2562d3bf1441" />
 
 
+## Vet Dashboard
+
+<img width="944" height="497" alt="Screenshot 2026-11-23 193508" src="https://github.com/user-attachments/assets/5c19b12b-8648-4ead-8d55-dffef188e06e" />
+
+<img width="942" height="529" alt="Screenshot 2026-11-23 193543" src="https://github.com/user-attachments/assets/f8825637-d626-40fc-bd92-6f7fac63543a" />
+
+<img width="947" height="499" alt="Screenshot 2026-11-23 193607" src="https://github.com/user-attachments/assets/bc5f6f64-22da-4511-8891-760b34a00610" />
+
+<img width="944" height="496" alt="Screenshot 2026-11-23 193619" src="https://github.com/user-attachments/assets/ba362b7c-5b2c-4e29-b179-ee2d3f38f19b" />
+
+
 ## Admin Dashboard
 
 <img width="945" height="488" alt="Screenshot 2026-11-23 194507" src="https://github.com/user-attachments/assets/1cf3cf69-d8f8-4cbe-b6c4-fdb75a77617b" />
