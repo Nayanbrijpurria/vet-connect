@@ -17,3 +17,23 @@
 <img width="944" height="492" alt="Screenshot 2026-11-23 194013" src="https://github.com/user-attachments/assets/a798926e-853d-4640-bc0f-082ed65fc90d" />
 
 <img width="943" height="493" alt="Screenshot 2026-11-23 194027" src="https://github.com/user-attachments/assets/900c35cc-7723-49b8-b145-b02fd851b536" />
+
+### Video consultation 
+
+<img width="946" height="491" alt="Screenshot 2026-11-23 194336" src="https://github.com/user-attachments/assets/5cda1719-6946-4fb7-98ec-bf9f26b94e30" />
+
+
+<img width="596" height="363" alt="Screenshot 2026-11-23 194201" src="https://github.com/user-attachments/assets/128e96af-9740-4a51-aa6e-7cf3735ef341" />
+
+### Add pet/records
+
+<img width="940" height="497" alt="Screenshot 2026-11-23 194307" src="https://github.com/user-attachments/assets/9a929d8d-4f72-471e-8e63-d602fe9e1382" />
+
+<img width="939" height="496" alt="Screenshot 2026-11-23 194429" src="https://github.com/user-attachments/assets/9496e12c-8b22-4b35-ab73-2562d3bf1441" />
+
+
+## Admin Dashboard
+
+<img width="945" height="488" alt="Screenshot 2026-11-23 194507" src="https://github.com/user-attachments/assets/1cf3cf69-d8f8-4cbe-b6c4-fdb75a77617b" />
+
+<img width="945" height="485" alt="Screenshot 2026-11-23 194611" src="https://github.com/user-attachments/assets/972cbbd6-ec49-41cb-8b92-656fe1de1c30" />
